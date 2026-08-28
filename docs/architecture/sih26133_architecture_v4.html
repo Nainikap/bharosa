@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Closing the Care Loop — System Architecture v4 · SIH PS 26133</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body { font-family:"Segoe UI", Arial, sans-serif; color:#1a2332; font-size:10.2pt; line-height:1.45; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size:20pt; margin:0 0 6pt 0; color:#0d3b66; }
+  h2 { font-size:13.5pt; color:#0d3b66; border-bottom:2px solid #145da0; padding-bottom:3pt; margin:0 0 8pt 0; }
+  h3 { font-size:11pt; color:#145da0; margin:10pt 0 4pt 0; }
+  p { margin:4pt 0; }
+  ul, ol { margin:4pt 0 8pt 0; padding-left:18pt; }
+  li { margin:2pt 0; }
+  table { border-collapse:collapse; width:100%; margin:6pt 0 10pt 0; font-size:9pt; }
+  th { background:#0d3b66; color:#fff; text-align:left; padding:5pt 6pt; }
+  td { border:1px solid #b9c6d6; padding:4.5pt 6pt; vertical-align:top; }
+  tr:nth-child(even) td { background:#f2f6fa; }
+  .kicker { letter-spacing:2.5px; text-transform:uppercase; color:#145da0; font-size:9pt; font-weight:600; }
+  .subtle { color:#4a5a6e; font-size:9pt; }
+  .box { border:1px solid #b9c6d6; background:#f7fafc; padding:8pt 10pt; margin:6pt 0; page-break-inside:avoid; }
+  .box.warn { border-left:4px solid #b23a48; background:#fdf6f6; }
+  .box.good { border-left:4px solid #1f7a4d; background:#f4faf7; }
+  .tag { display:inline-block; background:#e3edf7; color:#0d3b66; border-radius:8pt; padding:1pt 8pt; font-size:8.5pt; margin-right:4pt; }
+  code, .mono { font-family:Consolas,"Courier New",monospace; font-size:8.8pt; background:#eef2f6; padding:0 3pt; border-radius:2pt; }
+  .cover { height:255mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .rule { height:3pt; background:#145da0; width:60mm; margin:10pt 0; }
+  .cover .meta td { border:none; padding:2pt 12pt 2pt 0; background:none !important; font-size:10pt; }
+  .cover .meta td:first-child { color:#4a5a6e; width:42mm; }
+  .state-chain { font-family:Consolas,monospace; font-size:9pt; background:#eef2f6; padding:6pt 8pt; border-radius:3pt; margin:5pt 0; white-space:pre-wrap; line-height:1.5; }
+  .flow-steps { counter-reset: step; list-style:none; padding-left:0; }
+  .flow-steps li { position:relative; padding:3pt 0 3pt 26pt; margin:0; }
+  .flow-steps li:before { counter-increment:step; content:counter(step); position:absolute; left:0; top:3pt;
+    width:17pt; height:17pt; border-radius:50%; background:#145da0; color:#fff; font-size:8.5pt;
+    text-align:center; line-height:17pt; font-weight:700; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 : COVER ============ -->
+<div class="page cover">
+  <div class="kicker">Smart India Hackathon 2026 · Problem Statement ID 26133 · MedTech / BioTech / HealthTech</div>
+  <div class="rule"></div>
+  <h1>Closing the Care Loop — System Architecture v4</h1>
+  <p style="font-size:13pt; color:#145da0; max-width:155mm;">
+    A promise-tracking layer for rural public healthcare: it records obligations created between
+    facility tiers, verifies whether they were discharged using evidence each tier already generates,
+    and escalates the misses to a named accountable person.
+  </p>
+  <div class="rule"></div>
+  <table class="meta">
+    <tr><td>Problem</td><td>Accessibility and quality of public healthcare services in rural and underserved areas</td></tr>
+    <tr><td>Lineage</td><td>v2 (integrated clinical platform) → v3 (promise-tracking reframe; removed patient-facing channels) → <b>v4 (this)</b>: five structural fixes to v3's residual gaps</td></tr>
+    <tr><td>Stack</td><td>Flutter field app (ASHA-facing only) · Node.js API · FHIR-shaped store on PostgreSQL · React dashboards incl. thin doctor-response queue · DLT-compliant SMS to staff/officers only · eSanjeevani + ABDM as named interfaces</td></tr>
+    <tr><td>Core thesis</td><td>Rural care fails because no system tracks whether cross-tier promises were kept — this platform tracks exactly that, and nothing it cannot verify honestly</td></tr>
+    <tr><td>Document type</td><td>Build-oriented architecture brief with documented design iteration (audit trail included)</td></tr>
+  </table>
+  <p class="subtle" style="margin-top:16mm;">Scale figures cite public dashboards (abdm.gov.in), PIB releases, peer-reviewed literature (PMC11422547), NHSRC/FDSI workshop records, and NGO-reported metrics as of their reporting dates.</p>
+</div>
+
+<!-- ============ PAGE 2 : WHY THE FRAMING CHANGED ============ -->
+<div class="page">
+  <h2>1 · Why the framing changed (v2 → v3, kept as foundation)</h2>
+  <p>Two assumptions of the original integrated-platform design proved false for the actual population, and v3's corrections are retained verbatim here because everything downstream depends on them:</p>
+
+  <h3>1.1 "The CHC will actively accept an incoming referral" — false.</h3>
+  <p>The patient gets treated on arrival regardless of whether anyone tapped a button first. An active-acceptance step measures app engagement, not care delivered: untapped taps produce false escalations and alert fatigue; rubber-stamped taps produce meaningless data. Replaced by <b>passive arrival capture</b> through the facility's existing OPD registration flow (§5).</p>
+
+  <h3>1.2 "The patient is reachable by phone" — mostly false.</h3>
+  <p>Any mechanism resting on SMS/IVR/OTP to the patient fails at exactly the population this problem statement targets. All patient-facing digital channels are removed. The system tracks the promise instead, verifying it with evidence the system already has: facility registration events and the ASHA's own physical presence in the household.</p>
+
+  <div class="box good">
+    <b>The one mechanism the whole system is:</b>
+    <span class="mono">PROMISE MADE → DEADLINE SET → EVIDENCE OF KEEPING (or its absence) → ESCALATION ON MISS</span><br><br>
+    Applied to four promise types: <b>referral</b>, <b>consult</b>, <b>follow-up</b>, <b>stock accuracy</b>. Nothing here performs triage, teleconsultation, or reminders better than incumbents that already do those jobs (eSanjeevani, Kilkari, DVDMS). This layer sits across them and notices when the handoff between them fails.
+  </div>
+
+  <h3>1.3 What v4 changes relative to v3</h3>
+  <p>v3 fixed the framing but left five structural gaps — some inherited from v2, some introduced by its own cuts. Section 2 audits them and states each fix. Everything else from v3 carries forward unchanged and is reproduced in condensed form in §4–§11 so this document remains self-contained.</p>
+</div>
+
+<!-- ============ PAGE 3 : AUDIT ============ -->
+<div class="page">
+  <h2>2 · Audit of v3 — gaps found and fixes applied</h2>
+
+  <h3>2.1 Five structural gaps</h3>
+  <table>
+    <tr><th style="width:24%">Gap</th><th style="width:33%">Why it breaks</th><th>Fix (structurally integrated in v4)</th></tr>
+    <tr>
+      <td><b>G1 · ASHA triple-load</b></td>
+      <td>v3 correctly named ASHA continuity as the load-bearing risk — then made her simultaneously the identity anchor, the fallback arrival-evidence channel, AND the sole follow-up channel. Transfer or turnover silently breaks all three at once.</td>
+      <td><code>Household</code> becomes a first-class entity: patients link to households, households link to catchments (§7). Catchment <b>transfer/reassignment is a supported operation</b> with supervisor approval and logged handover — context survives worker turnover by construction rather than memory.</td>
+    </tr>
+    <tr>
+      <td><b>G2 · SLA clock vs offline creation</b></td>
+      <td>A red-flag referral created offline and synced six hours later would insta-lapse if the SLA ran on field creation time. First escalation would be a false accusation — the fastest way to kill trust in an accountability system.</td>
+      <td>Dual timestamps: <code>created_at</code> (field reality, preserved for analytics — field-to-system lag is itself a monitored metric) vs <code>sla_start</code> (server sync receipt). Ladders fire on <code>sla_start</code>. (§6.3)</td>
+    </tr>
+    <tr>
+      <td><b>G3 · False-negative arrivals</b></td>
+      <td>Patient arrives but the code isn't scanned (busy desk, paper register, lost slip) → referral reads <code>lapsed</code> → innocent ASHA escalated against.</td>
+      <td>Attestation reconciles: <code>lapsed → completed-attested</code>, flagged lower-confidence and visually distinct from registration-verified completion (§6.2). Escalation copy is non-accusatory by rule (§6.4): "no arrival record <i>or match missed</i>."</td>
+    </tr>
+    <tr>
+      <td><b>G4 · Consult promise with no ingestion loop</b></td>
+      <td>v3 stubs eSanjeevani entirely — so nothing returns structured responses, and consult-SLA tracking (promise type #2) has nothing to ingest. Undemonstrable as scoped.</td>
+      <td><b>Thin doctor-response tab added to scope (Build — core, ~1 day)</b>: async case cards in (photos, vitals, history), structured response + optional voice note out, routed to the ASHA's app for playback at the household. Store-and-forward-lite, no video; closes the loop internally while eSanjeevani remains the documented future interface (§5, §6.5).</td>
+    </tr>
+    <tr>
+      <td><b>G5 · Stock semantics overclaim</b></td>
+      <td>"Reported vs found" accuracy tracking requires a facility-side writer — but v3 deleted every facility-side stock surface. Without one there is no "reported" side.</td>
+      <td>Honest rename: ASHA-logged <b>ground-truth stock-out events</b> (rare, valuable, actionable negative reports tied to real encounters). Facility-side writer demoted to a named future interface enabling two-sided comparison later (§5 row 8).</td>
+    </tr>
+  </table>
+
+  <h3>2.2 Smaller spec holes closed</h3>
+  <ul>
+    <li><b>Arrival-capture degradation ladder specified</b> (§5.1) — QR scan → manual code entry → CHO end-of-day batch → ASHA attestation, each tier with stated latency and confidence.</li>
+    <li><b>Escalation acknowledgment UX defined</b> (§5.3) — staff/officer SMS survives (patients get none); acknowledgment happens via authenticated one-tap deep link in the alert, dashboard inbox as fallback.</li>
+    <li><b>Follow-up tasks batched by round-route</b> (§8 FollowUpTask) — village-clustered day-plans, or the task list becomes an unreadable backlog within two weeks of pilot.</li>
+    <li><b>Boundary statement made explicit</b> (§10.2) — the system tracks ASHA-initiated obligations only; walk-in care is out of scope and untouched.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 4 : PROMISE TABLE ============ -->
+<div class="page">
+  <h2>3 · The promise table (v4 revisions applied)</h2>
+  <table>
+    <tr><th style="width:12%">Promise type</th><th style="width:20%">Who makes it</th><th style="width:34%">Evidence it was kept</th><th>Who's paged on miss</th></tr>
+    <tr>
+      <td><b>Referral</b></td>
+      <td>ASHA/ANM refers patient to CHC/PHC</td>
+      <td><b>Passive arrival match</b>: facility registration captures the referral code during normal OPD registration; degradation ladder down to ASHA attestation (§5.1, §6.2)</td>
+      <td>Referring ASHA → Block MO → District nodal officer (ack-required ladder)</td>
+    </tr>
+    <tr>
+      <td><b>Consult</b></td>
+      <td>Worker requests specialist review</td>
+      <td><b>Internal doctor tab returns a structured response within SLA</b> (store-and-forward-lite, §6.5); eSanjeevani response ingestion is the same interface shape once access exists</td>
+      <td>Requesting facility; urgent cases also surfaced on district board</td>
+    </tr>
+    <tr>
+      <td><b>Follow-up</b></td>
+      <td>Patient enrolled in protocol (ANC week / IMNCI band / NCD stage)</td>
+      <td><b>ASHA attests outcome on next household visit</b>, entered when next online; tasks batched into round-route day-plans (§8)</td>
+      <td>Supervisor — only on repeated misses, not first lapse</td>
+    </tr>
+    <tr>
+      <td><b>Stock ground-truth</b></td>
+      <td>Facility claims availability implicitly by receiving referrals</td>
+      <td><b>ASHA logs stock-out event when a referred patient encounters it missing</b> (G5 fix — one-sided ground truth until facility writer ships)</td>
+      <td>Block MO (stock-out logged, referral routing updated on dashboard)</td>
+    </tr>
+  </table>
+  <p class="subtle">Design rule: every component must justify itself against this table or it is cut. Every arrow in every flow generates auditable state; if an action doesn't advance a promise (made → verified → closed), it doesn't ship in v1.</p>
+
+  <h3>3.1 Why escalation lands on named people, not channels</h3>
+  <p>An alert without an accountable human trains everyone to ignore alerts. Each promise type names its first responder; each rung of each ladder requires explicit tap-to-acknowledge; unacknowledged items render red on the accountable officer's own district view. Acknowledgment latency per officer is itself tracked — the system applies its own logic to its operators.</p>
+
+  <h3>3.2 What this system deliberately does not do</h3>
+  <ul>
+    <li>No triage decision-support beyond a minimal red-flag checklist sufficient to create the obligation (full clinical DSS is eSanjeevani/protocol territory)</li>
+    <li>No video teleconsultation pipeline (removed; duplicates incumbents without tracking them)</li>
+    <li>No patient-facing messaging of any kind (removed; population largely unreachable, channel invented failure modes)</li>
+    <li>No warehouse inventory management (DVDMS owns logistics; we hold ground-truth negatives only)</li>
+    <li>No autonomous clinical authority anywhere — workers attest, clinicians decide, officers acknowledge</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 5 : LANDSCAPE ============ -->
+<div class="page">
+  <h2>4 · Existing systems landscape (condensed, cited)</h2>
+  <table>
+    <tr><th style="width:16%">System</th><th style="width:36%">Covers</th><th>Documented gap this design attacks</th></tr>
+    <tr><td><b>eSanjeevani</b></td><td>Doctor-to-doctor + OPD teleconsult; 43+ crore consultations (Nov 2025, Rajya Sabha reply); ~1.1 lakh spokes / 14,188 hubs (2022 figures)</td><td>No screening/triage structure, unstandardized free-text referrals, wrong-specialty referrals, no feedback loop to referring worker, consultations "end as isolated single-step events," doctors can't see past records (PMC11422547, analysis of 60M+ consultations)</td></tr>
+    <tr><td><b>ABDM</b></td><td>National health-record rails, registries, consent flows; ~96.85 cr ABHAs, 5.58L facilities registered (Aug 2026)</td><td>Adoption ≠ integration — only <b>545 of 3,041 active sandbox integrators</b> have completed certification (NHA dashboard). Local-ID-first design mandatory; adapter stays an interface, never a dependency</td></tr>
+    <tr><td><b>Kilkari / Mobile Academy</b></td><td>Stage-driven IVR education from MCTS registry; 21M+ reached; 166k FLWs trained</td><td>One-way; not tied to encounters/referrals; assumes patient phone access — the exact assumption v3 removed from this design</td></tr>
+    <tr><td><b>Khushi Baby CHIP</b></td><td>Offline CHW data platform; 85k CHWs, 60M+ tracked; nodal partner to Rajasthan DoH</td><td>Nearest real competitor; strength is program-wise data collection. No documented cross-tier referral-SLA state machine with acknowledged escalation as a first-class object. Open-source reference architecture vs state-tied NGO deployment is the honest differentiator</td></tr>
+    <tr><td><b>ANMOL / RCH</b></td><td>ANM-specific reporting into RCH portal</td><td>No referral tracking; ASHAs remain on paper</td></tr>
+    <tr><td><b>DVDMS / e-Aushadhi</b></td><td>Warehouse-to-facility drug logistics; 60,927 facilities onboarded</td><td>NHSRC/FDSI workshop records "irregular stock updates," state-vs-dashboard discrepancies, Sikkim on Google Sheets, Jharkhand stock app in 2,533/3,900 facilities; takeaway explicitly calls for offline-capable sync apps. No last-mile visibility for the worker deciding whether to send a patient</td></tr>
+    <tr><td><b>Paper + phone calls</b></td><td>The actual daily incumbent</td><td>Zero infra cost, universally understood, works through power cuts — loses irreversibly on searchability, deduplication, aggregation, accountability trails</td></tr>
+  </table>
+  <div class="box good">
+    The empty quadrant is unchanged: <b>no incumbent owns the seam between tiers</b>, because ownership requires both ends of a handoff inside one system — structurally impossible for vertical silos. v4 keeps v3's discipline: this platform claims only that quadrant, using evidence tiers already generate.
+  </div>
+</div>
+
+<!-- ============ PAGE 6 : SCOPE ============ -->
+<div class="page">
+  <h2>5 · Scope: what is built vs what is a named interface</h2>
+  <table>
+    <tr><th style="width:34%">Component</th><th style="width:14%">Status</th><th>Why</th></tr>
+    <tr><td>Referral state machine (SLA clock on <code>sla_start</code>, passive arrival matching, reconciliation, escalation ladder)</td><td><b>Build — core</b></td><td>This <i>is</i> the product</td></tr>
+    <tr><td>ASHA field app: caseload list · red-flag checklist → route decision → referral creation w/ code · task list · stock-out logger · attestation forms</td><td><b>Build — minimal</b></td><td>Just enough to create and discharge obligations; not a clinical DSS suite</td></tr>
+    <tr><td>Facility-side registration capture page (scan/manual entry, zero-install browser)</td><td><b>Build — core</b></td><td>Replaced the dead "accept" screen; rides existing OPD registration workflow (§5.1)</td></tr>
+    <tr><td>District dashboard incl. <b>thin doctor-response tab</b> (G4 fix)</td><td><b>Build — core</b></td><td>Where promise-tracking becomes visible live; doctor tab closes consult loop internally (~1 day build)</td></tr>
+    <tr><td>Escalation inbox w/ ack (dashboard + authenticated deep-links from staff SMS)</td><td><b>Build — core</b></td><td>Ladders without acknowledgment surfaces are noise generators</td></tr>
+    <tr><td>Household/catchment registry incl. transfer operation (G1 fix)</td><td><b>Build — core</b></td><td>Identity anchor must survive worker turnover by construction (§7)</td></tr>
+    <tr><td>eSanjeevani handoff</td><td><b>Stub / named interface</b></td><td>Request sent, structured response expected, SLA tracked — their video pipeline is theirs</td></tr>
+    <tr><td>ABDM HIP adapter</td><td><b>Stub / named interface</b></td><td>Mock credentials; certification path documented (545/3,041 integrators complete it — months, not weeks)</td></tr>
+    <tr><td>Facility-side stock writer (two-sided comparison)</td><td><b>Named future interface</b></td><td>G5 honesty: until it exists, stock promise is ground-truth-only (§3)</td></tr>
+    <tr><td>Patient-facing SMS/IVR</td><td><b>Removed entirely</b></td><td>Population unreachable; channel manufactured failure modes</td></tr>
+    <tr><td>WebRTC video teleconsult</td><td><b>Removed from v1</b></td><td>eSanjeevani owns delivery; rebuilding duplicates instead of tracking</td></tr>
+    <tr><td>Staff/officer SMS (DLT-compliant gateway)</td><td><b>Retained</b></td><td>Workers and officers are reachable and accountable; alerts carry ack deep-links</td></tr>
+  </table>
+
+  <h3>5.1 Arrival-capture degradation ladder (G3 companion fix)</h3>
+  <table>
+    <tr><th>Tier</th><th style="width:30%">Surface</th><th style="width:14%">Latency</th><th>Confidence / notes</th></tr>
+    <tr><td>1</td><td>QR scan at registration desk (facility capture page)</td><td>Live</td><td>Highest; patient presents code slip</td></tr>
+    <tr><td>2</td><td>Manual code entry on same page</td><td>Live</td><td>High; covers camera/damage issues</td></tr>
+    <tr><td>3</td><td>CHO/front-desk batch entry end-of-day from paper register</td><td>T+1</td><td>Medium; for paper-register facilities</td></tr>
+    <tr><td>4</td><td>ASHA attestation on next household visit</td><td>Days</td><td>Lower; flags <code>completed-attested</code>, distinct from verified (§6.2)</td></tr>
+  </table>
+  <p class="subtle">Tier coverage rate per facility is itself a dashboard metric — silent capture decay otherwise rots the data invisibly.</p>
+
+  <h3>5.2 Build-risk rationale</h3>
+  <p>v2 specified ten integrated subsystems; most of that build risk bought no differentiation because it duplicated incumbents rather than tracking them. v4's cut concentrates effort where the USP lives: the state machine, the matching, the ladders, the evidence surfaces. Everything else is an interface with a name, an owner, and a documented production path.</p>
+</div>
+
+<!-- ============ PAGE 7 : REFERRAL FLOW ============ -->
+<div class="page">
+  <h2>6 · Referral &amp; consult flows (revised)</h2>
+
+  <h3>6.1 State machines</h3>
+  <div class="state-chain">Emergency / routine referral (majority case):
+
+initiated ──▶ arrived (passive, registration match) ──▶ completed
+   │                                                      ▲
+   │ no arrival within SLA                                │ attestation reconciles
+   ▼                                                      │
+lapsed ──▶ ESCALATED (ack-required ladder) ──▶ completed-attested (lower confidence)
+
+
+Coordination-only referral (specialist slot, OT, blood arranged — minority case):
+
+initiated ──▶ accepted (active, resource commitment justifies the tap)
+        ──▶ arrived ──▶ completed</div>
+
+  <h3>6.2 Reconciliation path (new in v4)</h3>
+  <p>When a <code>lapsed</code> referral meets ASHA attestation ("did the patient go, what happened"), it converts to <code>completed-attested</code>: counted toward completion, flagged lower-confidence, visually distinct on dashboards. This preserves honest signal quality while preventing false accusations — and the <i>rate</i> of attested-vs-verified completions per facility becomes a data-quality metric pointing at capture-ladder decay (§5.1).</p>
+
+  <h3>6.3 SLA timing rule (G2 fix)</h3>
+  <table>
+    <tr><th style="width:28%">Field</th><th>Meaning</th></tr>
+    <tr><td><code>created_at</code></td><td>Field reality — when ASHA created the referral offline. Never drives ladders. Aggregate lag between created_at and sla_start is a monitored connectivity metric per catchment.</td></tr>
+    <tr><td><code>sla_start</code></td><td>Server receipt at first successful sync. Ladders fire exclusively on this clock. Defaults: red-flag 24 h · urgent 48 h · routine 7 d — configurable per district.</td></tr>
+  </table>
+
+  <h3>6.4 Escalation copy rule (trust preservation)</h3>
+  <div class="box warn" style="border-left-color:#b23a48;">
+    Every escalation message reads: <i>"No arrival record for referral #X within SLA — either the patient did not reach, or the arrival was not matched. Verify with the referring ASHA."</i>
+    It never asserts the patient "missed" or the ASHA "failed." The system's first contact with a worker must never be a false accusation; G3's reconciliation exists precisely so the ladder can be wrong gracefully.
+  </div>
+
+  <h3>6.5 Consult flow via thin doctor tab (G4 fix)</h3>
+  <ol class="flow-steps">
+    <li>Worker creates <code>ConsultRequest</code>: photos, vitals, symptom summary, prior encounter references — uploaded at next connectivity window</li>
+    <li>Doctor tab on district dashboard shows queued case cards (longitudinal context attached) to volunteer/available medical officers</li>
+    <li>Response = structured note + prescription text + optional voice-note recording, within SLA targets (urgent 4 h · routine 24 h) tracked by the same promise engine</li>
+    <li>Voice note routes to the ASHA's app for playback at the household — audio reaches the family through the worker, keeping the no-patient-channel principle intact</li>
+    <li>Red-flag findings spawn immediate in-person referral directly in the state machine; outcome appended to record</li>
+  </ol>
+  <p class="subtle">This is store-and-forward-lite: no video infrastructure, both ends inside our trust boundary, fully demonstrable in evaluation rounds. When eSanjeevani exposes an integration path, the same request/response objects map onto it — the interface was designed for that swap from day one.</p>
+</div>
+
+<!-- ============ PAGE 8 : IDENTITY ============ -->
+<div class="page">
+  <h2>7 · Identity &amp; households (expanded per G1 fix)</h2>
+
+  <h3>7.1 Identity strategy</h3>
+  <p>Identity does not rest on phone numbers or stable addresses — both frequently absent for this population. Identity is: <b>known to ASHA X, member of household Y, within catchment Z</b>. That relationship already powers the CHW model informally; the system's job is making it queryable, shareable, and survivable across worker turnover.</p>
+  <ul>
+    <li><code>local_id</code> (UUID) is canonical. <code>abha_ref</code> nullable, populated opportunistically — OTP-based ABHA linking largely fails without personal phones; certification path documented, not depended upon.</li>
+    <li>Coarse dedup (name + fuzzy-DOB + village) exists as a safety net for cross-worker matching — explicitly not the primary mechanism.</li>
+  </ul>
+
+  <h3>7.2 Household as first-class entity</h3>
+  <table>
+    <tr><th style="width:26%">Element</th><th>Definition</th></tr>
+    <tr><td><code>Household</code></td><td><code>household_id</code> · catchment (ASHA assignment) · village/landmark descriptor (not postal address) · member[] links · transfer log[]</td></tr>
+    <tr><td><b>Transfer operation</b></td><td>Supervisor-initiated reassignment of households between ASHAs with effective date and acknowledgment by receiving worker. Context, pending follow-ups, open referrals, and identity anchors move together — turnover stops being amnesia.</td></tr>
+    <tr><td><b>Catchment boundaries</b></td><td>Recorded as assigned administratively; known mismatch with actual care-seeking behavior accepted and visible (households may be served by facilities outside their nominal catchment — referrals carry actual destination chosen by worker/patient).</td></tr>
+  </table>
+
+  <h3>7.3 Named load-bearing risks (stated, not hidden)</h3>
+  <div class="box warn">
+    <ul style="margin-bottom:0;">
+      <li><b>ASHA continuity</b> remains the deepest dependency even with transfer support: a gap between departure and reassignment pauses evidence collection in that catchment. Mitigated by construction (transfer op), not solved.</li>
+      <li><b>Catchment-boundary mismatch:</b> patients seek care where they choose; the system records actuals rather than pretending administrative maps bind anyone.</li>
+      <li><b>Visit-cadence realism:</b> routine follow-up SLAs must match ASHA round frequency (weekly-ish), or tasks systematically appear late. Task due-dates align to round cadence; only red-flag items demand faster clocks, and those ride the referral ladder instead of the visit cadence.</li>
+      <li><b>Attestation fidelity:</b> worker-reported outcomes can be wrong or gamed; supervisor spot-audit sampling and anomaly flags audit without blocking (§9).</li>
+    </ul>
+  </div>
+  <p class="subtle">Solving these outright is out of scope for this system; making them visible, auditable, and recoverable is in scope and built.</p>
+</div>
+
+<!-- ============ PAGE 9 : DATA MODEL ============ -->
+<div class="page">
+  <h2>8 · Core data model (revised)</h2>
+  <p class="subtle">Trimmed to what is actually built. Clinical facts stay FHIR-shaped for the eventual HIP path; operational entities modeled as companions, not JSON blobs.</p>
+  <table>
+    <tr><th style="width:15%">Entity</th><th style="width:47%">Key fields / constraints</th><th>Notes</th></tr>
+    <tr><td><code>Patient</code></td><td><code>local_id</code> UUID (always) · <code>abha_ref</code> nullable · name/approx-age/sex · <b><code>household_id</code> link</b> · preferred language</td><td>Identity per §7 — household anchor, not address/phone</td></tr>
+    <tr><td><code>Household</code></td><td><code>household_id</code> · catchment ASHA assignment · landmark descriptor · members[] · <b>transfer_log[]</b> (from/to/effective date/supervisor ack)</td><td>New in v4 (G1) — identity survives turnover</td></tr>
+    <tr><td><code>Referral</code></td><td>from/to facility · priority (routine/urgent/red-flag) · status ∈ initiated → arrived → completed | completed-attested | lapsed (+optional accepted for coordination cases) · <b><code>created_at</code> + <code>sla_start</code></b> · <b><code>arrival_source</code></b> ∈ scan | manual | batch | attestation · escalation ladder w/ ack timestamps · referral_code</td><td>The core object; dual-clock and source fields are v4 fixes G2/G3</td></tr>
+    <tr><td><code>Encounter</code></td><td>type (triage/consult/in-person) · facility · worker · timestamp · GPS plausibility fields</td><td>Append-only, never overwritten</td></tr>
+    <tr><td><code>ConsultRequest / Response</code></td><td>request: media refs, vitals, summary · response: structured note, prescription text, voice-note ref · sla targets (urgent 4 h / routine 24 h)</td><td>Powers doctor tab (G4); shaped to map onto eSanjeevani later</td></tr>
+    <tr><td><code>FollowUpTask</code></td><td>due date aligned to <b>round cadence</b> · assigned ASHA · <b>round-route/village cluster id</b> · outcome ∈ adherent | missed | rescheduled (entered on next visit)</td><td>No patient-channel fields exist; batching prevents backlog rot</td></tr>
+    <tr><td><code>StockEvent</code></td><td>facility · drug code · found-missing note/qty · linked encounter · logged-by</td><td>Ground-truth negative reports (G5); facility writer = future interface</td></tr>
+    <tr><td><code>ConsentArtifact</code> / <code>AuditEvent</code></td><td>purpose · scope · timestamps · signatures · append-only</td><td>DPDP posture; unchanged from v2/v3</td></tr>
+  </table>
+
+  <h3>8.1 Consistency model (unchanged where proven)</h3>
+  <ul>
+    <li>Clinical observations and attestations: append-only — concurrent workers never conflict because nothing mutates.</li>
+    <li>Mutable operational fields (stock notes, contact details): field-level last-writer-wins with server-assigned monotonic sequence per device.</li>
+    <li>All state transitions (referral, consult, escalation): single-writer server-side state machine; devices enqueue intents, server serializes. Survives device loss by design.</li>
+    <li>Sync journal retains priority classes (emergency &gt; referral &gt; encounter &gt; analytics) with jittered exponential backoff — fewer op types than v2, same storm-proofing.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 10 : SECURITY ============ -->
+<div class="page">
+  <h2>9 · Security, privacy, abuse controls</h2>
+  <table>
+    <tr><th style="width:30%">Threat / constraint</th><th>Control</th></tr>
+    <tr><td>PHI on cheap shared Android devices; loss/theft</td><td>SQLCipher AES-256 at rest · device-bound PIN + remote-wipe token · only the ASHA's active caseload syncs to device; full histories stay server-side</td></tr>
+    <tr><td>Transport interception</td><td>TLS 1.3 + certificate pinning</td></tr>
+    <tr><td>Incentive gaming (ghost referrals, rubber-stamp arrivals, attestation inflation)</td><td>GPS+timestamp plausibility checks at creation · arrival-source weighting (attestations audited more than scans) · supervisor spot-audit sampling · anomaly flags raised, never auto-blocking</td></tr>
+    <tr><td>False accusation damage (system credibility)</td><td>Non-accusatory escalation copy mandated by rule (§6.4); attestation reconciliation before ladder hardens (§6.2)</td></tr>
+    <tr><td>Officer alert fatigue</td><td>Ack-required ladders with per-officer ack-latency metrics; repeated-miss-only paging for supervisors on follow-up promises (§3.1)</td></tr>
+    <tr><td>DPDP Act 2023 posture</td><td>Consent artifact per interaction purpose · guardian consent for minors · purpose limitation via role scoping · append-only signed audit trail</td></tr>
+    <tr><td>API abuse / quota burning</td><td>Per-device rate limits; emergency-class traffic exempted but flagged</td></tr>
+    <tr><td>Patient privacy surface</td><td>No patient-facing digital channel exists — the entire v2 attack surface is removed by construction, not by control</td></tr>
+  </table>
+
+  <h3>9.1 Operational notes</h3>
+  <ul>
+    <li><b>Observability:</b> per-device sync lag · arrival-capture coverage rate per facility (§5.1) · attested-vs-verified completion ratio · officer ack latency · dead-letter queue for failed staff SMS.</li>
+    <li><b>Debugging:</b> replayable device sync journals reproduce any worker's exact operation server-side.</li>
+    <li><b>Rollback/portability:</b> feature flags per facility; expand-contract migrations; nightly NDJSON export keeps government buyers un-locked-in.</li>
+    <li><b>Cost sketch (pilot district, order-of-magnitude):</b> 1–2 app servers + managed PostgreSQL ≈ ₹15–25k/month; staff SMS ≈ ₹5–10k/month (far below v2's estimate now that patient messaging is gone); dominant cost remains field training and change management.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 11 : USP ============ -->
+<div class="page">
+  <h2>10 · Boundary, USP, positioning</h2>
+
+  <h3>10.1 USP statement</h3>
+  <div class="box good">
+    Unlike eSanjeevani (isolated consultation events), Kilkari (one-way IVR education requiring a patient phone), or Khushi Baby (program-wise data collection per state deployment), this system tracks whether <b>cross-tier promises — referral, consult, follow-up, stock ground truth — are actually kept</b>, using evidence each tier already generates (facility registration, worker household visits) rather than inventing new channels to a population that is frequently unreachable by phone. It does not compete with any incumbent's clinical delivery; it is the layer that notices when the handoff between them fails — and tells a named person, who must acknowledge.
+  </div>
+
+  <h3>10.2 Explicit boundary</h3>
+  <p>This system tracks <b>ASHA-initiated obligations only</b>. Self-referred walk-ins, emergency walk-ins, and private-care journeys are out of scope and unaffected. The claim is precise by design: within the obligation set it owns, nothing lapses silently anymore. Overclaiming coverage beyond that would be the first dishonesty the platform exists to prevent.</p>
+
+  <h3>10.3 Strategic positioning for evaluation rounds</h3>
+  <ul>
+    <li>Near-identical concepts have appeared at SIH before (offline-first ASHA EHR pitches, 2025 season). Differentiation comes from three demonstrables: the working state machine with SLA ladders and acknowledgment (live), honest evidence semantics (arrival sources weighted visibly, attested completions flagged), and interfaces-with-names instead of hand-waved integrations.</li>
+    <li>The iteration story is itself evidence: v2's overbuild, v3's two kill-decisions, v4's five fixes are documented in-section — reviewers reward designs that show they survive contact with their own assumptions.</li>
+    <li>Baseline methodology: dashboard supports a measure-only mode for the first weeks of any deployment, so "+20–30% referral completion" targets rest on captured baselines rather than asserted ones.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 12 : OPEN QUESTIONS + SUMMARY ============ -->
+<div class="page">
+  <h2>11 · Open questions requiring decisions before build</h2>
+  <ol>
+    <li><b>Pilot district choice</b> — determines which facility registration workflow (paper register vs existing EMR) the arrival-capture page integrates with first, and whether Tier-3 batch entry is the realistic default.</li>
+    <li><b>Demo consult coverage</b> — the internal doctor tab needs at least one informal doctor-side contact (volunteer MBBS student suffices) for live demo rounds; otherwise responses are mocked. Decide before building the demo script.</li>
+    <li><b>Minimum device floor</b> — commit to Android Go / 1 GB RAM now; constrains Flutter app footprint and SQLCipher viability choices immediately.</li>
+    <li><b>Coordination-referral depth in demo</b> — the minority-case <code>accepted</code> variant: demo a specialist-slot scenario, or document it as a supported variant and keep the demo on the majority path?</li>
+    <li><b>Language set for v1 field app</b> — pick two (Hindi + one regional per pilot district) rather than promising many.</li>
+  </ol>
+
+  <h2 style="margin-top:14pt;">Summary</h2>
+  <p><b>Problem:</b> Referrals, consults, follow-ups, and stock claims cross tiers in rural care, and nobody tracks whether they were kept — every incumbent is a silo owning one side of the handoff.</p>
+  <p><b>Architecture:</b> A server-side promise-tracking state machine covering four promise types (referral, consult, follow-up, stock ground truth), each following <span class="mono">promise → deadline → evidence → escalation</span>; fed by passive facility-registration matching (with a four-tier degradation ladder and attestation reconciliation), dual SLA clocks separating field creation from system receipt, household-anchored identity surviving worker transfer, a thin internal doctor-response tab closing the consult loop, and staff-only DLT-compliant messaging — with eSanjeevani and ABDM integrated as named interfaces rather than rebuilt subsystems.</p>
+  <p><b>USP:</b> The only system tracking whether cross-tier care obligations were kept, using evidence that already exists at each tier, for a population a phone-based or app-based patient channel cannot reach — escalating misses to named, acknowledging humans instead of firing alerts into a void.</p>
+
+  <h3>Source notes</h3>
+  <p class="subtle" style="font-size:8.5pt;">
+    NHA/ABDM dashboard Aug 2026 snapshot (~96.85 cr ABHA, 5.58L facilities, 545 successful integrators); PIB MoHFW releases (eSanjeevani 43+ crore consultations, Nov 2025 Rajya Sabha reply; ABDM updates Feb/Aug 2025); Elets/webnewswire (spokes/hubs 2022); ARMMAN/GSMA (Kilkari 21M+, Mobile Academy 166k); khushibaby.org (85k CHWs, 60M+ tracked); DVDMS portal statistics (60,927 facilities); NHSRC FDSI Regional Workshop Report, Guwahati (stock-update irregularities, offline-sync takeaway); PMC11422547 (eSanjeevani triage/referral gap analysis); JFMPC e-Aushadhi benefit-evaluation study. Figures reflect their reporting snapshots.
+  </p>
+</div>
+
+</body>
+</html>

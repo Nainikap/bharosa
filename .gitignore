@@ -1,0 +1,75 @@
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-*
+.opencode
+
+# ---------- Secrets / Env ----------
+.env
+.env.*
+*.local
+*.key
+*.pem
+serviceAccount.json
+firebase-adapter-config.json
+credentials.json
+secrets/
+
+# ---------- Node / JS / TS ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json.bak
+.npm
+*.tsbuildinfo
+dist/
+build/
+coverage/
+.vite/
+
+# ---------- Flutter / Dart ----------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.apk
+*.aab
+*.ipa
+*.app
+flutter_*.png
+/android/local.properties
+/ios/Flutter/Flutter.framework/
+/ios/Flutter/Flutter.podspec
+/ios/Pods/
+
+# ---------- Android (sms-gateway) ----------
+.gradle/
+/local.properties
+*.iml
+/android/.gradle/
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+
+# ---------- Logs / DB ----------
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+
+# ---------- Misc ----------
+.cache/
+.temp/
+tmp/

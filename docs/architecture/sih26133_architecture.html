@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SIH PS 26133 — End-to-End System Architecture</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color:#1a2332; font-size:10.2pt; line-height:1.45; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size:20pt; margin:0 0 6pt 0; color:#0d3b66; }
+  h2 { font-size:13.5pt; color:#0d3b66; border-bottom:2px solid #145da0; padding-bottom:3pt; margin:0 0 8pt 0; }
+  h3 { font-size:11pt; color:#145da0; margin:10pt 0 4pt 0; }
+  p { margin:4pt 0; }
+  ul, ol { margin:4pt 0 8pt 0; padding-left:18pt; }
+  li { margin:2pt 0; }
+  table { border-collapse:collapse; width:100%; margin:6pt 0 10pt 0; font-size:9pt; }
+  th { background:#0d3b66; color:#fff; text-align:left; padding:5pt 6pt; }
+  td { border:1px solid #b9c6d6; padding:4.5pt 6pt; vertical-align:top; }
+  tr:nth-child(even) td { background:#f2f6fa; }
+  .kicker { letter-spacing:2.5px; text-transform:uppercase; color:#145da0; font-size:9pt; font-weight:600; }
+  .subtle { color:#4a5a6e; font-size:9pt; }
+  .box { border:1px solid #b9c6d6; background:#f7fafc; padding:8pt 10pt; margin:6pt 0; page-break-inside:avoid; }
+  .box.warn { border-left:4px solid #b23a48; background:#fdf6f6; }
+  .box.good { border-left:4px solid #1f7a4d; background:#f4faf7; }
+  .tag { display:inline-block; background:#e3edf7; color:#0d3b66; border-radius:8pt; padding:1pt 8pt; font-size:8.5pt; margin-right:4pt; }
+  code, .mono { font-family:Consolas,"Courier New",monospace; font-size:8.8pt; background:#eef2f6; padding:0 3pt; border-radius:2pt; }
+  /* cover */
+  .cover { height:255mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .rule { height:3pt; background:#145da0; width:60mm; margin:10pt 0; }
+  .cover .meta td { border:none; padding:2pt 12pt 2pt 0; background:none !important; font-size:10pt; }
+  .cover .meta td:first-child { color:#4a5a6e; width:42mm; }
+  /* architecture diagram */
+  .arch { border:1.5pt solid #0d3b66; padding:7pt; margin:8pt 0; page-break-inside:avoid; }
+  .layer { border:1pt dashed #7a93ad; padding:5pt 6pt; margin:4pt 0; background:#fbfdff; }
+  .layer-label { font-size:8pt; text-transform:uppercase; letter-spacing:1.2px; color:#145da0; font-weight:700; margin-bottom:3pt; }
+  .nodes { display:flex; gap:5pt; flex-wrap:wrap; }
+  .node { flex:1 1 30%; min-width:28%; border:1pt solid #145da0; border-radius:3pt; padding:4pt 5pt; background:#fff; }
+  .node b { color:#0d3b66; font-size:9pt; display:block; }
+  .node span { font-size:8pt; color:#33465c; line-height:1.3; display:block; margin-top:1pt; }
+  .arrow { text-align:center; color:#145da0; font-size:11pt; margin:-1pt 0; }
+  .flow-steps { counter-reset: step; list-style:none; padding-left:0; }
+  .flow-steps li { position:relative; padding:3pt 0 3pt 26pt; margin:0; }
+  .flow-steps li:before { counter-increment:step; content:counter(step); position:absolute; left:0; top:3pt;
+    width:17pt; height:17pt; border-radius:50%; background:#145da0; color:#fff; font-size:8.5pt;
+    text-align:center; line-height:17pt; font-weight:700; }
+  .state-chain { font-family:Consolas,monospace; font-size:9pt; background:#eef2f6; padding:6pt 8pt; border-radius:3pt; margin:5pt 0; }
+  footer.pgfoot { position:fixed; bottom:0; left:0; right:0; font-size:7.5pt; color:#7a8896; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 : COVER ============ -->
+<div class="page cover">
+  <div class="kicker">Smart India Hackathon 2026 · Problem Statement ID 26133 · MedTech / BioTech / HealthTech</div>
+  <div class="rule"></div>
+  <h1>Closing the Care Loop</h1>
+  <p style="font-size:13pt; color:#145da0; max-width:150mm;">
+    An offline-first, ABDM-native referral &amp; continuity platform for rural public healthcare —
+    end-to-end system architecture, gap analysis against existing national systems, and defensible USP.
+  </p>
+  <div class="rule"></div>
+  <table class="meta">
+    <tr><td>Problem</td><td>Accessibility and quality of public healthcare services in rural and underserved areas</td></tr>
+    <tr><td>Core thesis</td><td>Rural care fails on cross-tier <i>accountability</i>, not service availability — the platform makes referral completion itself the auditable product</td></tr>
+    <tr><td>Stack (proposed)</td><td>Flutter field app · Node.js API · HAPI FHIR R4 on PostgreSQL · React dashboards · DLT-compliant SMS/IVR · WebRTC + store-and-forward teleconsultation</td></tr>
+    <tr><td>Compliance targets</td><td>ABDM sandbox (HIP adapter) · FHIR R4 · DPDP Act 2023 principles · TRAI DLT messaging</td></tr>
+    <tr><td>Document type</td><td>Build-oriented architecture brief (between judge-ready and engineering spec)</td></tr>
+  </table>
+  <p class="subtle" style="margin-top:18mm;">Figures for existing systems are drawn from public dashboards (abdm.gov.in, PIB releases), peer-reviewed literature (PMC11422547), NHSRC/FDSI workshop records, and NGO-reported metrics; each is cited inline and marked as of its reporting date.</p>
+</div>
+
+<!-- ============ PAGE 2 : PROBLEM ANALYSIS ============ -->
+<div class="page">
+  <h2>1 · Problem Analysis</h2>
+
+  <h3>1.1 The scenario that breaks today</h3>
+  <p>An ASHA worker in a village ~18 km from the PHC meets a pregnant woman with blurred vision and swelling — preeclampsia red flags. She has no triage protocol, no phone path to the Medical Officer, and the referral is a verbal "go to the CHC": untracked, unverified, unremembered. If the woman never reaches the CHC, no system anywhere notices.</p>
+
+  <h3>1.2 What happens today, and what it costs</h3>
+  <table>
+    <tr><th style="width:32%">Current practice</th><th>Failure mode</th><th style="width:30%">Cost</th></tr>
+    <tr><td>Paper ANC registers at sub-centre, later name-based entry into RCH portal by ANM</td><td>Data loss, duplication, weeks of lag; register cannot be searched or aggregated</td><td>ANM/ASHA time; unreliable planning data</td></tr>
+    <tr><td>Referral = verbal instruction to patient</td><td>No record at destination; no completion check; no feedback to referrer</td><td>Delayed presentations of emergencies; avoidable maternal/NCD morbidity</td></tr>
+    <tr><td>Follow-up = ASHA memory + occasional Kilkari-style IVR education</td><td>Not tied to clinical encounters; lapses silently</td><td>High-risk pregnancies and chronic patients drop out of protocols unnoticed</td></tr>
+    <tr><td>Stock check = walk to PHC to look at a shelf</td><td>Wasted trips; patients turned away after travel</td><td>2–6 hours lost wages per wasted visit; trust erosion</td></tr>
+  </table>
+
+  <h3>1.3 Why this persists</h3>
+  <p>This is not a technology gap — it is an <b>accountability gap</b>. Every deployed digital tool is a vertical silo owned by one cadre or one tier (teleconsults by eSanjeevani's hubs, ANM reporting by ANMOL/RCH, drugs by DVDMS). Nobody's system closes the loop across sub-centre → PHC → CHC → district hospital, so no actor can see — or be answerable for — a referral dying in transit. Section 2 documents this silo-by-silo with sources.</p>
+
+  <h3>1.4 Measurable success criteria</h3>
+  <ul>
+    <li>Referral completion rate: target <b>+20–30%</b> over facility baseline within pilot cohort</li>
+    <li>Median time-to-first-consultation for triaged high-risk cases</li>
+    <li>Follow-up adherence % for enrolled maternal/child/NCD cohorts</li>
+    <li>Stock-visibility accuracy (reported vs verified stock match rate) and staleness distribution</li>
+    <li>Sync success rate over ≤2G links; median data-freshness per device</li>
+  </ul>
+
+  <h3>1.5 Explicit scope boundaries</h3>
+  <table>
+    <tr><th style="width:50%">In scope</th><th>Out of scope</th></tr>
+    <tr><td>Frontline triage, assisted teleconsultation routing, longitudinal referral tracking with SLA escalation, follow-up tasking, last-mile stock visibility, district accountability dashboards</td><td>Replacing eSanjeevani's doctor network; drug procurement/warehouse logistics itself; PM-JAY claims processing; autonomous clinical diagnosis (workers assist, clinicians decide)</td></tr>
+  </table>
+</div>
+
+<!-- ============ PAGE 3-4 : LANDSCAPE ============ -->
+<div class="page">
+  <h2>2 · Existing Systems Landscape (with documented gaps)</h2>
+  <p class="subtle">Method: for each incumbent we state what it covers, its scale, and the specific gap our design attacks — citing official dashboards, peer-reviewed analysis, or government workshop records where possible.</p>
+
+  <h3>2.1 eSanjeevani — national telemedicine service</h3>
+  <p><span class="tag">43+ crore consultations (Nov 2025, Rajya Sabha reply)</span> <span class="tag">~1.1 lakh AB-HWC spokes · 14,188 hubs (2022 figures)</span> Hub-and-spoke doctor-to-doctor consults facilitated by CHOs at Health &amp; Wellness Centres, plus direct-to-patient eSanjeevani OPD.</p>
+  <div class="box warn">
+    <b>Documented gaps (PMC11422547 — "Reimagining India's National Telemedicine Service"):</b> analysis of 60M+ consultations found lack of screening tools, incorrect OPD recommendations, unstandardized free-text symptom recording in referrals, wrong-specialty referrals with inadequate details, over-referral (Jharkhand study); consultants cannot track past treatment progression or access prior records; a consultation "ends as an isolated single-step event"; no feedback loop to the referring health worker; no publicly available triage SOPs or competency governance. The paper explicitly calls for SOP-guided triage pathways, structured referral support, and feedback loops.
+  </div>
+
+  <h3>2.2 ABDM — Ayushman Bharat Digital Mission rails</h3>
+  <p><span class="tag">~96.85 crore ABHA numbers (Aug 2026)</span> <span class="tag">113.7 crore linked health records</span> <span class="tag">5.58 lakh facilities registered</span> Provides registries (HFR/HPR/drug registry), consent-artifact flows, and FHIR-R4-based record sharing through HIP/HIU gateways.</p>
+  <div class="box warn">
+    <b>Gap:</b> adoption ≠ integration. Of 3,041 active sandbox integrators, only <b>545 have completed successful integration</b> (NHA dashboard, Aug 2026). Production HIP certification is a months-long compliance process — any credible solution must run on local identifiers with progressive ABHA linking behind a swappable adapter, not hard-depend on certified ABDM flows from day one.
+  </div>
+
+  <h3>2.3 Kilkari &amp; Mobile Academy (MoHFW, implemented by ARMMAN)</h3>
+  <p><span class="tag">Kilkari: 21M+ women/children reached</span> <span class="tag">Mobile Academy: 166k FLWs trained</span> Weekly time-appropriate IVR audio messages to mothers from 2nd trimester to child age 1, auto-subscribed from the MCTS/RCH registry; Mobile Academy delivers IVR training to frontline workers.</p>
+  <div class="box warn"><b>Gap:</b> one-way education. Calls are driven by registry stage (LMP/DOB), not by actual encounters, risk status, or referrals. A missed ANC visit does not change the call plan; there is no worker-facing action, no escalation, no closure signal back into the health system.</div>
+</div>
+
+<div class="page">
+  <h3>2.4 Khushi Baby CHIP — closest non-governmental competitor</h3>
+  <p><span class="tag">85,000+ community health workers enabled</span> <span class="tag">60M+ people tracked</span> Offline-first CHW mobile platform covering RMNCAH + NCD + TB data entry, deployed as nodal technical partner to the Rajasthan Department of Health (also Maharashtra, Karnataka); markets itself on "closing care loops at the last mile."</p>
+  <div class="box warn">
+    <b>Honest assessment:</b> this is the nearest living implementation of our vision and must not be dismissed. Structural differences available to us: (a) KB is an NGO delivery partner tied to specific state deployments, whereas an open-source, ABDM-sandbox-native reference architecture is portable across states and auditable by any implementer; (b) KB's strength is program-wise data collection; a first-class <b>referral-SLA state machine with acknowledged escalation</b>, cross-tier stock visibility, and teleconsultation routing as one integrated loop is not their documented center of gravity. Our demo must out-execute theirs on the loop, not the forms.
+  </div>
+
+  <h3>2.5 ANMOL / RCH portal</h3>
+  <p>Cadre-specific ANM reporting application feeding the RCH portal (name-based tracking of ANC/PNC/immunization). <b>Gap:</b> online-only usage pattern, ANM-workflow-bound, no referral tracking, no teleconsultation, no stock visibility; ASHAs remain on paper.</p>
+
+  <h3>2.6 DVDMS / e-Aushadhi — drug logistics</h3>
+  <p><span class="tag">60,927 facilities onboarded (DVDMS global stats)</span> Warehouse-to-facility procurement, indent, and inventory tracking; state variants (e-Aushadhi in UP/Rajasthan).</p>
+  <div class="box warn">
+    <b>Gaps (NHSRC/FDSI regional workshop report, Guwahati):</b> "irregular stock updates"; discrepancies between state-reported data and the national dashboard; Jharkhand's AAM-SHC-level stock app live in only 2,533 of 3,900 facilities; Sikkim still tracking procurement in Google Sheets; explicit key takeaway from states — need for <i>"offline-capable mobile applications with synchronization features"</i> and full facility-level mapping. Warehouse logistics exist; last-mile visibility <i>for the referring worker deciding whether to send a patient</i> does not.
+  </div>
+
+  <h3>2.7 Paper registers + phone calls — the real incumbent</h3>
+  <p>Zero infrastructure cost, universally understood, works during power cuts — beats every app on raw reliability in the worst conditions. It irreversibly loses on searchability, deduplication, aggregation, accountability trails, and anything at scale. Any honest design treats the paper register as the fallback mode and aims to replace it only where the app returns more value than it costs the worker in time.</p>
+
+  <h3>2.8 Synthesis: the hole in the middle</h3>
+  <table>
+    <tr><th>Capability</th><th>eSanjeevani</th><th>Kilkari</th><th>Khushi Baby</th><th>DVDMS</th><th>Paper</th><th>Ours</th></tr>
+    <tr><td>Structured frontline triage</td><td>✗</td><td>✗</td><td>partial</td><td>✗</td><td>✗</td><td>●</td></tr>
+    <tr><td>Teleconsultation routing/facilitation</td><td>●</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>●</td></tr>
+    <tr><td>Cross-tier longitudinal record</td><td>✗</td><td>✗</td><td>partial</td><td>✗</td><td>✗</td><td>●</td></tr>
+    <tr><td>Referral tracking w/ SLA + escalation</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>●</td></tr>
+    <tr><td>Adherence follow-up tied to encounters</td><td>✗</td><td>partial</td><td>partial</td><td>✗</td><td>✗</td><td>●</td></tr>
+    <tr><td>Last-mile stock visibility for referrals</td><td>✗</td><td>✗</td><td>✗</td><td>partial</td><td>✗</td><td>●</td></tr>
+    <tr><td>District accountability analytics</td><td>partial</td><td>✗</td><td>partial</td><td>partial</td><td>✗</td><td>●</td></tr>
+    <tr><td>Offline-first field operation</td><td>✗</td><td>n/a</td><td>●</td><td>✗</td><td>●</td><td>●</td></tr>
+  </table>
+  <p class="subtle">● full · partial · ✗ absent. The empty quadrant — <b>cross-tier closure with accountability</b> — is the innovation target. No listed system owns it because ownership requires both ends of a referral in one system, which vertical silos structurally prevent.</p>
+</div>
+
+<!-- ============ PAGE 5 : USP ============ -->
+<div class="page">
+  <h2>3 · Innovation &amp; USP (pressure-tested)</h2>
+
+  <h3>3.1 The structural bet</h3>
+  <div class="box good">
+    The platform's first-class data structure is a <b>referral-with-SLA state machine</b>: every encounter, teleconsultation, referral transition, escalation acknowledgment, follow-up outcome, and stock check writes into one cross-tier loop. Referral completion stops being an accident and becomes the measurable, escalatable product. This creates a dataset — end-to-end referral lifecycle telemetry across SC→PHC→CHC→DH — that no single-tier incumbent can generate, and which compounds: every tracked referral improves routing, staffing, and stocking decisions downstream.
+  </div>
+
+  <h3>3.2 Why someone picks this over each alternative (no marketing language)</h3>
+  <ul>
+    <li><b>Over eSanjeevani:</b> peer-reviewed evidence names exactly what it lacks — structured triage, standardized referrals, feedback loops, continuity. We do not compete for its doctors; we supply its missing frontline layer and hand off hub consults to it. A district adopting this strengthens its existing eSanjeevani ROI rather than duplicating it.</li>
+    <li><b>Over Khushi Baby CHIP:</b> open-source reference architecture vs state-tied NGO deployment; referral SLA + escalation + stock visibility as integrated core vs program-wise data collection. Deployable by any state/NHM team without vendor dependency.</li>
+    <li><b>Over Kilkari:</b> reminders become two-way tasks tied to clinical reality (missed visit ⇒ different action), with closure signals returning to workers — not fixed-stage broadcasts.</li>
+    <li><b>Over DVDMS:</b> not another warehouse LMIS; a read-visibility layer plus lightweight facility-side capture that feeds referring decisions, designed to import DVDMS where present (the exact "offline-capable sync" gap NHSRC records).</li>
+    <li><b>Over paper:</b> replaces the register only when the app gives the ASHA back more time than it takes — caseload view, auto-referrals, incentive-relevant records — with paper as declared fallback, not a shamed relic.</li>
+  </ul>
+
+  <h3>3.3 USP statement</h3>
+  <div class="box good">
+    Unlike eSanjeevani (consultation-only, isolated events), Kilkari (one-way IVR education), or Khushi Baby (program-data collection per state deployment), this system is the <b>cross-tier referral-and-follow-up state machine every level writes into</b> — making referral completion itself the auditable, escalatable product and creating a cross-tier lifecycle dataset structurally unavailable inside any single-tier incumbent.
+  </div>
+
+  <h3>3.4 Strategic honesty for the presentation round</h3>
+  <p>Near-identical concepts have appeared at SIH before (e.g., SIH25219, 2025: offline-first ASHA EHR companion). Judges will have seen this shape. Differentiation will come from three demonstrable things: (1) the working referral state machine with SLA clocks and acknowledged escalation — live, not slideware; (2) protocol depth — versioned IMCI/WHO-PEN rule bundles producing explainable scores with visible rule traces; (3) an honest integration story — eSanjeevani handoff and ABDM sandbox adapters shown as interfaces, with production-certification steps named rather than hand-waved.</p>
+</div>
+
+<!-- ============ PAGE 6-7 : ARCHITECTURE ============ -->
+<div class="page">
+  <h2>4 · System Architecture (revised v2)</h2>
+
+  <div class="arch">
+    <div class="layer-label">Field tier — offline-first</div>
+    <div class="nodes">
+      <div class="node"><b>ASHA/ANM Field App (Flutter)</b><span>SQLite + SQLCipher AES-256 · icon-driven triage &lt;90 s · Bluetooth vitals (BP, SpO₂) · SyncJournal w/ priority classes · device PIN binding</span></div>
+      <div class="node"><b>Pharmacist Web-Lite</b><span>zero-install browser page: item → count → submit · staleness badges · daily reminder nudge</span></div>
+      <div class="node"><b>Patient Channel</b><span>SMS (no PHI content) · outbound/inbound IVR voice notes in local language · appointment confirmations via missed-call/DTMF</span></div>
+    </div>
+    <div class="arrow">▲ delta up (priority: emergency &gt; referral &gt; encounter &gt; analytics)&nbsp;&nbsp;&nbsp;▼ delta down (active caseload subset only)</div>
+    <div class="layer-label">Service tier — Node.js gateway + core services</div>
+    <div class="nodes">
+      <div class="node"><b>API Gateway</b><span>OTP + PIN authn · device registry · TLS pinning · role scoping · rate limits</span></div>
+      <div class="node"><b>Sync Service</b><span>per-device monotonic sequence · jittered exponential backoff · chunked batch upload · dead-letter queue · per-device sync-lag metric</span></div>
+      <div class="node"><b>FHIR Store</b><span>HAPI FHIR R4 on partitioned PostgreSQL · Encounter/Observation/ServiceRequest/CarePlan/Task · nightly NDJSON export</span></div>
+      <div class="node"><b>Rules Engine</b><span>versioned IMCI/IMNCI + WHO-PEN + maternal danger-sign protocols · bundled offline in app · explainable score w/ rule trace · config-push updates</span></div>
+      <div class="node"><b>Referral State Machine</b><span>SLA clocks by priority · escalation ladder w/ tap-to-acknowledge · unacknowledged = red on district board</span></div>
+      <div class="node"><b>Follow-Up Engine</b><span>enrollment cohorts (ANC week, IMNCI age bands, NCD stage) · rule-based task generation · adherence write-back</span></div>
+      <div class="node"><b>Notification Adapter</b><span>DLT-registered Indian SMS gateway default (~₹0.12–0.15/SMS) · Twilio dev-sandbox only · TRAI DLT templates · provider swap by config</span></div>
+      <div class="node"><b>Integration Adapters</b><span>eSanjeevani handoff stub · ABDM sandbox HIP adapter (behind interface) · DVDMS/e-Aushadhi stock import</span></div>
+      <div class="node"><b>Audit Service</b><span>append-only signed audit log · Provenance/AuditEvent resources · DPDP consent artifacts</span></div>
+    </div>
+    <div class="arrow">▲ reads&nbsp;&nbsp;&nbsp;▼ consult queue / responses</div>
+    <div class="layer-label">Clinical + oversight tier</div>
+    <div class="nodes">
+      <div class="node"><b>Doctor Console</b><span>async consult queue (store-and-forward) · WebRTC video/audio when bandwidth allows · eSanjeevani handoff view · structured response incl. IVR voice note</span></div>
+      <div class="node"><b>Escalation Inbox (Block MO)</b><span>acknowledgment-required stalled-referral tasks · one-tap phone-out · resolution notes</span></div>
+      <div class="node"><b>District Dashboards (React)</b><span>read replica + materialized views · wait-time · referral completion · adherence · stock-outs + staleness · sync-lag · anomaly flags (ghost-encounter detection)</span></div>
+    </div>
+  </div>
+  <p class="subtle">Design rule: every arrow above generates auditable state. If an action doesn't advance a loop (triage→route→refer→accept→complete→follow-up), it doesn't ship in v1.</p>
+
+  <h3>4.1 Teleconsultation channel ladder</h3>
+  <table>
+    <tr><th style="width:18%">Tier</th><th style="width:34%">Condition</th><th>Mechanics</th></tr>
+    <tr><td>1 · Video</td><td>Stable 3G+ detected at session start</td><td>WebRTC peer call, CHO/ASHA-facilitated; auto-degrades down on packet loss</td></tr>
+    <tr><td>2 · Audio-only</td><td>Voice-grade link only</td><td>Voice call w/ vitals relayed verbally + typed by facilitator</td></tr>
+    <tr><td>3 · Store-and-forward <b>(default)</b></td><td>Intermittent connectivity</td><td>Worker uploads photos/vitals/history; queued to doctor console; specialist reviews within SLA (e.g., 24 h routine / 4 h urgent); response returned as local-language IVR voice note + prescription to PHC</td></tr>
+    <tr><td>4 · In-person escalation</td><td>Red-flag score or async review says so</td><td>Priority referral created directly in state machine with shortest SLA</td></tr>
+  </table>
+  <p class="subtle">Rationale: PMC11422547 documents that real-world eSanjeevani quality suffers when connectivity assumptions fail mid-call; store-and-forward matches specialist availability reality instead of fighting it. Trade-off accepted: asynchronous tier sacrifices immediacy (hours, not minutes) — acceptable for non-red-flag cases by definition.</p>
+</div>
+
+<div class="page">
+  <h3>4.2 Component justifications (why separated)</h3>
+  <ul>
+    <li><b>Sync Service separate from Gateway:</b> bursty fan-in (200 devices hitting block-office Wi-Fi simultaneously) has a distinct profile — long chunked uploads, retry storms — isolating it prevents API latency contamination; scales independently.</li>
+    <li><b>FHIR Store as dedicated service:</b> keeps clinical semantics canonical and lets the same store serve future HIP certification without re-platforming; partitioning by region keeps queries district-local.</li>
+    <li><b>Rules Engine versioned and bundled:</b> triage must work fully offline (rules ship with app builds); version pinning means every historical score can be reproduced — audit requirement, not nicety.</li>
+    <li><b>State machine + Follow-Up engine split:</b> referrals are event-driven with SLA timers; enrollments are schedule-driven calendars; conflating them produced the "one-way handoff" anti-pattern the problem statement forbids.</li>
+    <li><b>Notification Adapter:</b> Twilio is non-compliant-for-production in India without TRAI DLT registration and ~2× costlier; abstraction keeps provider swappable so pilots don't burn quota on the wrong rail.</li>
+  </ul>
+
+  <h3>4.3 Security, privacy, abuse controls</h3>
+  <table>
+    <tr><th style="width:26%">Threat / constraint</th><th>Control</th></tr>
+    <tr><td>PHI on cheap shared Android devices; loss/theft</td><td>SQLCipher AES-256 at rest · device-bound PIN + remote-wipe token · PHI minimization: only the worker's active caseload syncs to device, full history stays server-side</td></tr>
+    <tr><td>Transport interception</td><td>TLS 1.3 + certificate pinning in app</td></tr>
+    <tr><td>Incentive gaming (ghost encounters/patients)</td><td>GPS+timestamp plausibility checks · duplicate-pattern detection · supervisor spot-audit sampling workflow · anomaly flags surfaced on dashboard (audit, not blocking)</td></tr>
+    <tr><td>Patient SMS exposure</td><td>Messages carry zero diagnosis content — appointments/facility info only; links point to staff-authenticated portal, never raw records</td></tr>
+    <tr><td>DPDP Act 2023 posture</td><td>Consent artifact captured and stored per interaction purpose; guardian consent flow for minors; purpose limitation enforced by role scoping; append-only signed AuditEvent trail</td></tr>
+    <tr><td>API abuse / quota burning</td><td>Per-device rate limits + token buckets; emergency-class traffic exempted but flagged</td></tr>
+  </table>
+
+  <h3>4.4 Operational reality</h3>
+  <ul>
+    <li><b>Observability:</b> per-device sync-lag metric, crash reporting, dead-letter queue inspection tooling for failed SMS/IVR, weekly district digest email generated from materialized views.</li>
+    <li><b>Debugging field issues:</b> SyncJournal replays let support reproduce any device's exact op sequence server-side.</li>
+    <li><b>Rollback strategy:</b> feature flags per facility; expand-contract DB migrations; nightly NDJSON export guarantees data portability away from the platform (lock-in insurance for government buyers).</li>
+    <li><b>Cost sketch (pilot district, order-of-magnitude):</b> 1–2 app servers + managed PostgreSQL + object storage ≈ ₹15–25k/month; messaging at ~100k SMS/month ≈ ₹12–15k via DLT gateway; dominant cost is field training/change management, not compute.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 8 : DATA MODEL ============ -->
+<div class="page">
+  <h2>5 · Core Data Model (FHIR-mapped)</h2>
+  <p class="subtle">Entities chosen so later migration hurts least: clinical facts stored canonically as FHIR resources; operational entities (referral SLA, stock, sync) modeled as extensions/companions rather than free-form JSON blobs.</p>
+  <table>
+    <tr><th style="width:16%">Entity</th><th style="width:44%">Key fields / constraints</th><th>FHIR mapping</th></tr>
+    <tr><td><code>Patient</code></td><td><code>local_id</code> UUIDv7 (always present) · <code>abha_ref</code> nullable · name/dob/sex · village/household · preferred language · guardian link · dedup key (name+fuzzy-dob+village)</td><td>Patient</td></tr>
+    <tr><td><code>Encounter</code></td><td>type ∈ {triage, teleconsult, in-person} · facility_id · worker_id · GPS+timestamp plausibility fields · vitals Observations attached (append-only, never overwritten)</td><td>Encounter + Observation[] bundle (typ. 20–100 KB JSON)</td></tr>
+    <tr><td><code>TriageScore</code></td><td>rule_bundle_version · input answers · score · <b>rule trace</b> · route decision ∈ {self-care, phc-slot, teleconsult, emergency}</td><td>RiskAssessment (custom profile)</td></tr>
+    <tr><td><code>Referral</code></td><td>from/to facility · priority ∈ {routine, urgent, red-flag} · <code>status ∈ initiated → accepted → scheduled → completed | lapsed</code> · sla_deadline · escalation_ladder[] w/ ack timestamps</td><td>ServiceRequest + Task chain (status extension)</td></tr>
+    <tr><td><code>Enrollment</code></td><td>cohort ∈ {anc-week, imnci-band, ncd-stage} · anchor date (LMP/DOB/dx) · protocol version · exit reason</td><td>CarePlan</td></tr>
+    <tr><td><code>FollowUpTask</code></td><td>due_date · channel ∈ {sms, ivr, worker-visit} · attempt count · outcome ∈ {adherent, missed, rescheduled, unreachable}</td><td>Task</td></tr>
+    <tr><td><code>StockItem</code></td><td>facility_id · drug_code (DVDMS-mapped) · qty_on_hand · updated_at · entered_by · staleness computed client-side</td><td>InventoryItem (emerging) / custom companion resource</td></tr>
+    <tr><td><code>SyncJournal</code></td><td>device-local only: seq_no monotonic · op payload · priority class · sync status — replayable server-side for debugging</td><td>device-side (no server entity)</td></tr>
+    <tr><td><code>ConsentArtifact</code></td><td>purpose · granted_at · scope · guardian_of link · revocation</td><td>Consent</td></tr>
+    <tr><td><code>AuditEvent</code></td><td>actor · action · resource · timestamp · signature — append-only</td><td>AuditEvent / Provenance</td></tr>
+  </table>
+
+  <h3>5.1 Identity strategy</h3>
+  <div class="box">
+    Progressive identity: the system runs fully on local IDs; ABHA linking happens opportunistically when connectivity allows (OTP flow fails offline — documented ABDM reality). Dedup uses name+fuzzy-DOB+village matching with worker confirmation UI. This keeps the hackathon build honest while the ABDM adapter remains a clean interface for post-pilot certification.
+  </div>
+
+  <h3>5.2 Consistency model</h3>
+  <ul>
+    <li><b>Clinical observations: append-only.</b> Two workers' entries never conflict because nothing is mutated — corrections are new entries referencing the old.</li>
+    <li><b>Operational entities (stock counts, contact details): field-level last-writer-wins</b> with server-assigned monotonic sequence per device; rare concurrent-edit loss accepted and flagged in trade-offs (below).</li>
+    <li><b>Referral transitions: single-writer state machine server-side;</b> devices enqueue intents, server serializes — no distributed locking needed.</li>
+  </ul>
+</div>
+
+<!-- ============ PAGE 9 : FLOWS ============ -->
+<div class="page">
+  <h2>6 · Key Flows</h2>
+
+  <h3>6.1 Triage → route → refer → close (the loop)</h3>
+  <ol class="flow-steps">
+    <li>ASHA opens caseload → patient tile pre-filled from last encounter → symptom checklist (icons + voice prompts, Hindi/Marathi/…)</li>
+    <li>Offline rules engine scores against versioned IMCI/WHO-PEN bundle → shows score + human-readable rule trace ("BP 160/+ swelling → red flag")</li>
+    <li>Route decision rendered as action cards: self-care advice | PHC slot booking | teleconsult | emergency alert (location + summary one-tap)</li>
+    <li>If referred: <code>Referral(initiated, priority, sla_deadline)</code> created locally → queued at emergency/referral priority class</li>
+    <li>Sync on next connectivity window (jittered backoff, chunked upload)</li>
+    <li>Receiving PHC sees referral inbox → taps <i>Accept</i> → <code>accepted</code>; slot confirmed to patient via SMS/IVR</li>
+    <li>Visit logged at destination → <code>completed</code>; if SLA breached first: escalation ladder fires — referring ANM → block MO → district nodal officer, each hop requires tap-to-acknowledge; unacknowledged items render red on district dashboard</li>
+    <li>Outcome (e.g., BP ≥140 confirmed) auto-enrolls patient into NCD protocol cohort → FollowUpTasks scheduled → adherence recorded back into the record → dashboard aggregates</li>
+  </ol>
+
+  <h3>6.2 Referral state machine</h3>
+  <div class="state-chain">
+    initiated ──▶ accepted ──▶ scheduled ──▶ completed<br>
+    &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    &nbsp;&nbsp;&nbsp;└─ SLA breach ─▶ ESCALATED(ack-required) ◀┘&nbsp;&nbsp;(any state) ─▶ lapsed
+  </div>
+  <p class="subtle">SLA defaults: red-flag 24 h · urgent 48 h · routine 7 d — configurable per district. Every transition stamps actor, timestamp, and channel; the ladder is data, not email.</p>
+
+  <h3>6.3 Sync protocol</h3>
+  <ol class="flow-steps">
+    <li>All mutations append to device SyncJournal with priority class (E&gt;R&gt;Enc&gt;Analytics)</li>
+    <li>On connectivity: jittered backoff schedules upload (avoids 200-device thundering herd at block office)</li>
+    <li>Chunked batch upload in priority order; server validates, assigns sequence numbers, applies merge rules (§5.2), returns acks</li>
+    <li>Delta download: only the worker's active caseload subset + updated rules bundle + referral inbox changes</li>
+    <li>Failures park in dead-letter queue with per-device sync-lag surfaced on dashboards — silence is treated as an incident, not a state</li>
+  </ol>
+
+  <h3>6.4 Async teleconsultation (store-and-forward default)</h3>
+  <ol class="flow-steps">
+    <li>Worker captures photos/vitals/history offline → encrypted queue upload when connected</li>
+    <li>Doctor console presents case card w/ longitudinal context (prior encounters, meds, referral history)</li>
+    <li>Specialist reviews within SLA → structured response: prescription to PHC + local-language voice note routed via IVR to patient + advice note back to worker (the feedback loop eSanjeevani lacks)</li>
+    <li>Consult outcome appended to record; red-flag findings spawn immediate in-person referral in the state machine</li>
+  </ol>
+</div>
+
+<!-- ============ PAGE 10 : OUR GAPS ============ -->
+<div class="page">
+  <h2>7 · Gaps Found in This Design &amp; Fixes Applied</h2>
+  <table>
+    <tr><th style="width:22%">Failure point</th><th style="width:36%">Why it breaks</th><th>Fix (integrated in §4–6)</th></tr>
+    <tr><td>WebRTC dies on 2G (50–100 kbps, mid-call drops)</td><td>Video teleconsult fails exactly at the frontline it targets</td><td>Channel ladder; store-and-forward becomes the <i>default</i>, video the exception (§4.1)</td></tr>
+    <tr><td>Twilio for Indian SMS</td><td>TRAI DLT registration required; ~₹0.30/SMS vs ₹0.12–0.15 domestic; sender-ID rejection</td><td>Provider-abstraction adapter, DLT-compliant Indian gateway default, Twilio dev-sandbox only (§4 node)</td></tr>
+    <tr><td>Sync storms + conflicts</td><td>200 devices hit block Wi-Fi simultaneously; divergent edits lose data; "sync failed" kills trust</td><td>Jittered backoff · priority classes · chunked uploads · per-device sequence + field-level LWW + append-only observations (§5.2, §6.3)</td></tr>
+    <tr><td>ABDM compliance theater</td><td>Only 545/3,041 integrators complete certification; OTP linking fails offline</td><td>Local-ID-first progressive linking behind sandbox adapter interface; certification path named, not faked (§5.1)</td></tr>
+    <tr><td>Stock data has no writer</td><td>Pharmacists aren't on the app; feature would show zeros — worse than nothing</td><td>Zero-install web-lite entry · daily nudges · DVDMS/e-Aushadhi import adapter · staleness badges so stale data is visibly stale (§4, §6)</td></tr>
+    <tr><td>ASHA workload collapse</td><td>Unpaid data entry does not happen; adoption dies quietly</td><td>&lt;90 s icon triage · app-as-register returns value (caseload, referrals, incentive-relevant records) · spot-audit sampling catches gaming without blocking everyone (§4.3, §6.1)</td></tr>
+    <tr><td>Ownerless escalation noise</td><td>Auto-alerts fired into a void train everyone to ignore them</td><td>Ladder of named humans with tap-to-acknowledge; unacknowledged = red on the accountable officer's dashboard (§6.2)</td></tr>
+    <tr><td>PHI exposure on cheap devices</td><td>Loss/theft/shared phones; DPDP liability</td><td>SQLCipher at rest · device binding + remote wipe · caseload-minimized on-device data · zero-PHI patient SMS (§4.3)</td></tr>
+  </table>
+
+  <h3>7.1 Trade-offs consciously accepted</h3>
+  <div class="box warn">
+    <ul style="margin-bottom:0;">
+      <li><b>Async teleconsult latency:</b> specialist replies arrive in hours, not minutes — matched to specialist availability reality, but red-flag cases bypass via ladder tier 4.</li>
+      <li><b>Field-level LWW:</b> rare concurrent edit of the same mutable field can drop one update — mitigated by making everything clinically meaningful append-only.</li>
+      <li><b>On-device minimization:</b> workers lose full-history access offline (active caseload only) — deliberate privacy-for-convenience exchange; full history retrievable on demand when online.</li>
+      <li><b>Rule-based (not ML) triage:</b> lower ceiling, fully explainable and auditable offline — correct trade for a safety-critical frontline decision under DPDP scrutiny.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ PAGE 11 : SUMMARY + OPEN QUESTIONS ============ -->
+<div class="page">
+  <h2>8 · Summary &amp; Open Questions</h2>
+
+  <h3>Problem</h3>
+  <p>Rural public healthcare fails not from missing services but from absent cross-tier accountability — referrals go untracked, follow-ups lapse silently, and no actor can see (or be held responsible for) care falling through the cracks between sub-centre and district hospital. Every incumbent system (§2) is a vertical silo; the cross-tier closure quadrant is empty.</p>
+
+  <h3>Architecture (one paragraph)</h3>
+  <p>Offline-first Flutter field app (SQLCipher, icon triage &lt;90 s, Bluetooth vitals) and pharmacist web-lite, syncing via priority-classed jittered delta journal into a Node.js gateway; HAPI FHIR R4/PostgreSQL longitudinal store; versioned IMCI/WHO-PEN offline rules engine producing explainable triage scores; tiered teleconsultation (video→audio→store-and-forward default→in-person) with eSanjeevani handoff; server-side referral state machine with SLA clocks and acknowledgment-required escalation ladders; DLT-compliant SMS/IVR notification abstraction; enrollment-driven follow-up engine writing adherence back to the record; read-replica district dashboards with anomaly detection; ABDM sandbox HIP adapter behind a clean interface, local-ID-first identity.</p>
+
+  <h3>USP</h3>
+  <p>The referral-with-SLA state machine is the first-class data structure every tier writes into — unlike eSanjeevani (isolated consultation events, documented absence of triage structure and feedback loops), Kilkari (stage-driven one-way IVR), or Khushi Baby (state-tied program-data collection) — making referral completion itself the auditable product and yielding a cross-tier lifecycle dataset no single-tier incumbent can structurally generate.</p>
+
+  <h3>Open questions requiring decisions before build</h3>
+  <ol>
+    <li><b>Pilot state/district choice</b> — determines which DVDMS variant (UP e-Aushadhi vs central DVDMS vs Assam-style AAM app) the stock import adapter must speak first.</li>
+    <li><b>Demo doctor coverage</b> — staff our own console with volunteer MBBS students for the pilot, or stub eSanjeevani handoff? Affects teleconsult realism in evaluation rounds.</li>
+    <li><b>Minimum device floor</b> — commit to Android Go / 1 GB RAM? Constrains Flutter app size, SQLCipher viability, and photo-capture UX.</li>
+    <li><b>ABDM sandbox registration timing</b> — feasible before your presentation round? If not, the adapter ships with mock credentials and the certification path stays documentation-only.</li>
+    <li><b>Language set for v1</b> — pick 2 (e.g., Hindi + one regional per pilot district) rather than promising many.</li>
+  </ol>
+
+  <h3>Source notes</h3>
+  <p class="subtle" style="font-size:8.5pt;">
+    Scale figures: NHA/ABDM dashboard (Aug 2026 snapshot: ~96.85 cr ABHA, 5.58L facilities, 545 successful integrators); PIB MoHFW releases (eSanjeevani 43+ crore consultations, Nov 2025 Rajya Sabha reply; ABDM updates Aug 2025/Feb 2025); webnewswire/Elets (eSanjeevani spokes/hubs 2022); ARMMAN/GSMA case study (Kilkari 21M+, Mobile Academy 166k; mMitra 2.47M); khushibaby.org (85k CHWs, 60M+ tracked); DVDMS portal statistics (60,927 facilities); NHSRC FDSI Regional Workshop Report, Guwahati (stock-update irregularities, offline-sync takeaway); PMC11422547 (eSanjeevani triage/referral gap analysis); JFMPC e-Aushadhi benefit-evaluation study. Figures marked with dates reflect their reporting snapshots, not current values.
+  </p>
+</div>
+
+</body>
+</html>
