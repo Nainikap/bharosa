@@ -1,0 +1,24 @@
+/* =============================================
+   Layout Styles
+   ============================================= */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.layout-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.layout-content {
+  flex: 1;
+  padding: 28px;
+  margin-top: var(--header-height);
+  animation: fadeIn 0.3s var(--cl-ease);
+}
