@@ -1,4 +1,10 @@
 {
+  "name": "bharosa",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
   "dependencies": {
     "pdfkit": "^0.20.1"
   }
