@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bharosa — Closing the Care Loop · SIH 2026 · PS 26133</title>
+<title>Bharosa â€” Closing the Care Loop Â· SIH 2026 Â· PS 26133</title>
 <style>
 :root{--navy:#122c49;--blue:#5eb0ff;--ink:#d7e3f0;--mut:#8fa5bc;--teal:#2fd4bd;--red:#ff8b98;
 --bg:#0a1322;--card:#101d31;--line:#22344c;--head:#eaf2fb;--shadow:0 12px 34px rgba(0,0,0,.45),0 2px 10px rgba(0,0,0,.35);}
@@ -53,7 +53,7 @@ h1.title{font-size:clamp(38px,5.6vw,70px)}
 .flow{display:flex;flex-wrap:wrap;margin-top:28px}
 .step{flex:1 1 200px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;position:relative;box-shadow:var(--shadow);min-width:185px}
 .step+.step{margin-left:34px}
-.step+.step::before{content:"➜";position:absolute;left:-27px;top:50%;transform:translateY(-50%);color:var(--teal);font-size:20px}
+.step+.step::before{content:"âžœ";position:absolute;left:-27px;top:50%;transform:translateY(-50%);color:var(--teal);font-size:20px}
 .step b{display:block;color:var(--head);font-size:15px;margin-bottom:4px}
 .step span{font-size:13px;color:var(--mut)}
 .principle{margin-top:24px;border-radius:16px;padding:20px 24px;color:#fff;background:linear-gradient(120deg,var(--navy),#14608f);box-shadow:var(--shadow)}
@@ -81,13 +81,13 @@ tr:nth-child(even) td{background:#0e1930}
 .usp h3{color:#fff;font-size:clamp(18px,2.4vw,24px);margin-bottom:8px}
 .usp p{color:#e2edf7;font-size:clamp(15px,1.7vw,18px)}
 footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);font-size:12.5px}
-@media(max-width:720px){nav.links{display:none}.step+.step{margin-left:0;margin-top:12px}.step+.step::before{content:"↓";left:50%;top:-19px;transform:translateX(-50%)}}
+@media(max-width:720px){nav.links{display:none}.step+.step{margin-left:0;margin-top:12px}.step+.step::before{content:"â†“";left:50%;top:-19px;transform:translateX(-50%)}}
 </style>
 </head>
 <body>
 <div id="bar"></div>
 <header class="nav">
-  <a class="brand" href="#top"><span class="mark">⬡</span><span>Bharosa<small>Closing the Care Loop · SIH 2026 · PS 26133</small></span></a>
+  <a class="brand" href="#top"><span class="mark">â¬¡</span><span>Bharosa<small>Closing the Care Loop Â· SIH 2026 Â· PS 26133</small></span></a>
   <nav class="links">
     <a href="#need">The Need</a><a href="#idea">The Idea</a><a href="#types">Promise Types</a>
     <a href="#arch">Architecture</a><a href="#pipeline">Pipeline</a><a href="#stack">Tech Stack</a><a href="#usp">USP</a>
@@ -97,15 +97,15 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
 <!-- HERO -->
 <section class="hero" id="top">
   <div class="hin">
-    <div class="badges reveal"><span class="badge dark">भरोसा · BHAROSA</span><span class="badge">Smart India Hackathon 2026</span><span class="badge">Problem Statement ID 26133</span><span class="badge">Public Healthcare · Rural &amp; Underserved</span></div>
-    <h1 class="title reveal">Every promise in rural healthcare,<br><span class="accent">kept — or escalated.</span></h1>
-    <p class="sub reveal"><b>Bharosa</b> — a <b>promise-tracking ledger</b> for public health: it records commitments made between facility tiers, verifies them using evidence from the tier that <i>received</i> the promise, and escalates every miss to a named, accountable person.</p>
-    <div class="thesis reveal"><b>The one mechanism:</b> PROMISE MADE → DEADLINE SET → EVIDENCE OF KEEPING (or its absence) → ESCALATION ON MISS. Not five features — one entity, extensible by evidence adapter.</div>
+    <div class="badges reveal"><span class="badge dark">à¤­à¤°à¥‹à¤¸à¤¾ Â· BHAROSA</span><span class="badge">Smart India Hackathon 2026</span><span class="badge">Problem Statement ID 26133</span><span class="badge">Public Healthcare Â· Rural &amp; Underserved</span></div>
+    <h1 class="title reveal">Every promise in rural healthcare,<br><span class="accent">kept â€” or escalated.</span></h1>
+    <p class="sub reveal"><b>Bharosa</b> â€” a <b>promise-tracking ledger</b> for public health: it records commitments made between facility tiers, verifies them using evidence from the tier that <i>received</i> the promise, and escalates every miss to a named, accountable person.</p>
+    <div class="thesis reveal"><b>The one mechanism:</b> PROMISE MADE â†’ DEADLINE SET â†’ EVIDENCE OF KEEPING (or its absence) â†’ ESCALATION ON MISS. Not five features â€” one entity, extensible by evidence adapter.</div>
     <div class="stats reveal">
-      <div class="stat"><b>43 cr+</b><span>eSanjeevani teleconsults — still "isolated single-step events" with no referral closure (PMC11422547)</span></div>
+      <div class="stat"><b>43 cr+</b><span>eSanjeevani teleconsults â€” still "isolated single-step events" with no referral closure (PMC11422547)</span></div>
       <div class="stat"><b>26.3%</b><span>facilities still reporting vaccine stock-outs even with eVIN live at 27,000+ cold-chain points</span></div>
       <div class="stat"><b>0</b><span>incumbent systems that verify a cross-tier handoff with the receiving tier's own evidence</span></div>
-      <div class="stat"><b>1</b><span>Promise state machine closes that seam — referral, vaccine supply, consult, follow-up</span></div>
+      <div class="stat"><b>1</b><span>Promise state machine closes that seam â€” referral, vaccine supply, consult, follow-up</span></div>
     </div>
   </div>
 </section>
@@ -114,14 +114,14 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
 <section id="need">
   <div class="kicker">The Need</div>
   <h2 class="reveal">Rural care doesn't fail from missing services.<br>It fails at the seams between them.</h2>
-  <p class="lead reveal">Every tier of India's public health system has a digital system doing its own job. Not one of them verifies that a handoff <i>between</i> tiers actually happened — so referrals die in transit, vaccine sessions open without supplies, and nobody is answerable.</p>
+  <p class="lead reveal">Every tier of India's public health system has a digital system doing its own job. Not one of them verifies that a handoff <i>between</i> tiers actually happened â€” so referrals die in transit, vaccine sessions open without supplies, and nobody is answerable.</p>
   <div class="grid g3">
-    <div class="card red reveal"><span class="tag">eSanjeevani · 43 cr+ consults</span><p>No screening structure, no feedback loop to the referring worker, consultations "end as isolated single-step events" (PMC11422547). The referral seam below it is unowned.</p></div>
-    <div class="card red reveal"><span class="tag">U-WIN · 11.87 cr children</span><p>Tracks whether a dose was administered — self-logged by the vaccinator. Never asks whether the supply commitment behind the session was kept.</p></div>
-    <div class="card red reveal"><span class="tag">eVIN · 27,000+ cold-chain points</span><p>Depot-level stock visibility drove 80%+ fewer stock-outs — yet 26.3% of facilities still report one. The residual gap is at the point of use, not the depot.</p></div>
-    <div class="card reveal"><span class="tag">ABDM · 96.85 cr ABHAs</span><p>National rails exist, but only 545 of 3,041 sandbox integrators completed certification. Integration must be an interface, not a dependency.</p></div>
-    <div class="card reveal"><span class="tag">Kilkari · 21M+ mothers</span><p>One-way IVR education keyed to registry stage. Assumes a patient phone — the assumption this population breaks daily.</p></div>
-    <div class="card reveal"><span class="tag">Khushi Baby CHIP · 85k CHWs</span><p>Nearest competitor: CHW data collection, self-reported by the worker. No cross-tier promise verified by a second, independent tier.</p></div>
+    <div class="card red reveal"><span class="tag">eSanjeevani Â· 43 cr+ consults</span><p>No screening structure, no feedback loop to the referring worker, consultations "end as isolated single-step events" (PMC11422547). The referral seam below it is unowned.</p></div>
+    <div class="card red reveal"><span class="tag">U-WIN Â· 11.87 cr children</span><p>Tracks whether a dose was administered â€” self-logged by the vaccinator. Never asks whether the supply commitment behind the session was kept.</p></div>
+    <div class="card red reveal"><span class="tag">eVIN Â· 27,000+ cold-chain points</span><p>Depot-level stock visibility drove 80%+ fewer stock-outs â€” yet 26.3% of facilities still report one. The residual gap is at the point of use, not the depot.</p></div>
+    <div class="card reveal"><span class="tag">ABDM Â· 96.85 cr ABHAs</span><p>National rails exist, but only 545 of 3,041 sandbox integrators completed certification. Integration must be an interface, not a dependency.</p></div>
+    <div class="card reveal"><span class="tag">Kilkari Â· 21M+ mothers</span><p>One-way IVR education keyed to registry stage. Assumes a patient phone â€” the assumption this population breaks daily.</p></div>
+    <div class="card reveal"><span class="tag">Khushi Baby CHIP Â· 85k CHWs</span><p>Nearest competitor: CHW data collection, self-reported by the worker. No cross-tier promise verified by a second, independent tier.</p></div>
   </div>
 </section>
 
@@ -129,16 +129,16 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
 <section id="idea">
   <div class="kicker">The Idea</div>
   <h2 class="reveal">One ledger. One shape. Every handoff.</h2>
-  <p class="lead reveal">The platform has exactly one first-class entity — <b>Promise</b>. A referral, a vaccine-supply commitment, a specialist consult, a follow-up visit are all rows of the same shape with a different evidence source plugged in.</p>
+  <p class="lead reveal">The platform has exactly one first-class entity â€” <b>Promise</b>. A referral, a vaccine-supply commitment, a specialist consult, a follow-up visit are all rows of the same shape with a different evidence source plugged in.</p>
   <div class="flow reveal">
-    <div class="step"><b>PROMISE MADE</b><span>Committed by one tier to another — referral sent, session supplied, consult requested, follow-up enrolled.</span></div>
-    <div class="step"><b>DEADLINE SET</b><span>Dual clocks: field creation time recorded, SLA starts on server receipt — offline work never insta-lapses.</span></div>
-    <div class="step"><b>EVIDENCE — OR ITS ABSENCE</b><span>Captured from the receiving tier: registration match, point-of-use log, structured response, round attestation. Silence is a miss.</span></div>
+    <div class="step"><b>PROMISE MADE</b><span>Committed by one tier to another â€” referral sent, session supplied, consult requested, follow-up enrolled.</span></div>
+    <div class="step"><b>DEADLINE SET</b><span>Dual clocks: field creation time recorded, SLA starts on server receipt â€” offline work never insta-lapses.</span></div>
+    <div class="step"><b>EVIDENCE â€” OR ITS ABSENCE</b><span>Captured from the receiving tier: registration match, point-of-use log, structured response, round attestation. Silence is a miss.</span></div>
     <div class="step"><b>ESCALATION ON MISS</b><span>A named person is paged and must acknowledge. Unacknowledged escalations render red on their own dashboard.</span></div>
   </div>
   <div class="principle reveal">
     <h3>The principle that makes it a ledger, not another registry</h3>
-    <p>Evidence always comes from the tier that <b>received</b> the promise — never the tier that made it. U-WIN tracks the vaccinator's own entry; eVIN tracks the depot's own count; Khushi Baby tracks the worker's own reports. This system catches exactly what those designs cannot see: whether the commitment survived the seam between two independently-operating tiers.</p>
+    <p>Evidence always comes from the tier that <b>received</b> the promise â€” never the tier that made it. U-WIN tracks the vaccinator's own entry; eVIN tracks the depot's own count; Khushi Baby tracks the worker's own reports. This system catches exactly what those designs cannot see: whether the commitment survived the seam between two independently-operating tiers.</p>
   </div>
 </section>
 
@@ -146,40 +146,40 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
 <section id="types">
   <div class="kicker">Promise Types</div>
   <h2 class="reveal">Four live types. One schema. Infinite adapters.</h2>
-  <p class="lead reveal">New promise types are new evidence adapters on the same state machine — additive, not architectural.</p>
+  <p class="lead reveal">New promise types are new evidence adapters on the same state machine â€” additive, not architectural.</p>
   <div class="grid g4">
-    <div class="card reveal"><span class="tag">Referral</span><p><b>Committed:</b> ASHA/ANM refers patient to CHC.<br><b>Evidence:</b> passive arrival match via existing OPD registration — QR scan, manual code, batch entry, or attestation fallback with reconciliation.<br><b>Miss →</b> ASHA → Block MO → District nodal.</p></div>
-    <div class="card green reveal"><span class="tag">Vaccine-session-supply</span><p><b>Committed:</b> PHC/CHC commits vaccine stock for a scheduled RI session (seeded from the ANM's monthly plan, independence flagged).<br><b>Evidence:</b> single-tap point-of-use log at session date. Silence = miss at T+1d.<br><b>Miss →</b> cold-chain officer.</p></div>
-    <div class="card amber reveal"><span class="tag">Consult</span><p><b>Committed:</b> worker requests specialist review from triage routing.<br><b>Evidence:</b> structured response + voice note within SLA (urgent 4h / routine 24h) — store-and-forward, eSanjeevani-compatible interface.<br><b>Miss →</b> requesting facility.</p></div>
-    <div class="card reveal"><span class="tag">Follow-up</span><p><b>Committed:</b> protocol enrollment (ANC week / IMNCI band / NCD stage) plus auto-generation for due children absent from a supplied session — U-WIN tracks the dose; we track absence follow-through.<br><b>Evidence:</b> round-visit attestation.<br><b>Miss →</b> supervisor, repeats only.</p></div>
+    <div class="card reveal"><span class="tag">Referral</span><p><b>Committed:</b> ASHA/ANM refers patient to CHC.<br><b>Evidence:</b> passive arrival match via existing OPD registration â€” QR scan, manual code, batch entry, or attestation fallback with reconciliation.<br><b>Miss â†’</b> ASHA â†’ Block MO â†’ District nodal.</p></div>
+    <div class="card green reveal"><span class="tag">Vaccine-session-supply</span><p><b>Committed:</b> PHC/CHC commits vaccine stock for a scheduled RI session (seeded from the ANM's monthly plan, independence flagged).<br><b>Evidence:</b> single-tap point-of-use log at session date. Silence = miss at T+1d.<br><b>Miss â†’</b> cold-chain officer.</p></div>
+    <div class="card amber reveal"><span class="tag">Consult</span><p><b>Committed:</b> worker requests specialist review from triage routing.<br><b>Evidence:</b> structured response + voice note within SLA (urgent 4h / routine 24h) â€” store-and-forward, eSanjeevani-compatible interface.<br><b>Miss â†’</b> requesting facility.</p></div>
+    <div class="card reveal"><span class="tag">Follow-up</span><p><b>Committed:</b> protocol enrollment (ANC week / IMNCI band / NCD stage) plus auto-generation for due children absent from a supplied session â€” U-WIN tracks the dose; we track absence follow-through.<br><b>Evidence:</b> round-visit attestation.<br><b>Miss â†’</b> supervisor, repeats only.</p></div>
   </div>
-  <p class="lead reveal" style="margin-top:18px;font-size:15px;"><b>Roadmap adapters (same schema):</b> diagnostics · medicine fulfillment · appointment slots · data-capture quality digests. Named interfaces, never rebuilds: eSanjeevani · ABDM HIP · U-WIN · eVIN.</p>
+  <p class="lead reveal" style="margin-top:18px;font-size:15px;"><b>Roadmap adapters (same schema):</b> diagnostics Â· medicine fulfillment Â· appointment slots Â· data-capture quality digests. Named interfaces, never rebuilds: eSanjeevani Â· ABDM HIP Â· U-WIN Â· eVIN.</p>
 </section>
 
 <!-- ARCHITECTURE -->
 <section id="arch">
   <div class="kicker">Architecture</div>
   <h2 class="reveal">Offline-first at the edge, one ledger at the core.</h2>
-  <div class="archlayer reveal"><div class="alabel">Field tier — works through power cuts and 2G</div>
+  <div class="archlayer reveal"><div class="alabel">Field tier â€” works through power cuts and 2G</div>
     <div class="nodes">
-      <div class="node"><b>ASHA Field App · Flutter + SQLCipher</b><span>Caseload by household anchor · IMNCI-lite triage with route decisions · referral codes/QR · session point-of-use log · emergency GSM-SMS bypass when data is dead</span></div>
-      <div class="node"><b>Facility Capture Page · zero-install web</b><span>Arrival scan/manual/batch during normal OPD registration · PHC dispatch confirm for sessions · fuzzy name+village fallback</span></div>
-      <div class="node"><b>SMS Gateway phone · block office</b><span>Inbound plain-GSM alerts ingested where no data network exists</span></div>
+      <div class="node"><b>ASHA Field App Â· Flutter + SQLCipher</b><span>Caseload by household anchor Â· IMNCI-lite triage with route decisions Â· referral codes/QR Â· session point-of-use log Â· emergency GSM-SMS bypass when data is dead</span></div>
+      <div class="node"><b>Facility Capture Page Â· zero-install web</b><span>Arrival scan/manual/batch during normal OPD registration Â· PHC dispatch confirm for sessions Â· fuzzy name+village fallback</span></div>
+      <div class="node"><b>SMS Gateway phone Â· block office</b><span>Inbound plain-GSM alerts ingested where no data network exists</span></div>
     </div></div>
-  <div class="arrow reveal">▲ priority-classed delta sync (jittered backoff) &nbsp;&nbsp;▼ active-caseload deltas only</div>
-  <div class="archlayer reveal"><div class="alabel">Core tier — one engine, every promise</div>
+  <div class="arrow reveal">â–² priority-classed delta sync (jittered backoff) &nbsp;&nbsp;â–¼ active-caseload deltas only</div>
+  <div class="archlayer reveal"><div class="alabel">Core tier â€” one engine, every promise</div>
     <div class="nodes">
-      <div class="node"><b>API Gateway · Node.js/Fastify</b><span>Device-bound PIN authn · JWT rotation · rate limits · TLS pinning</span></div>
-      <div class="node"><b>Generic Promise Engine</b><span>Dual-clock SLA scheduler · typed evidence registry · escalation ladders with HMAC ack deep-links · terminal annotations &amp; reconciliation</span></div>
-      <div class="node"><b>FHIR-shaped Store · SQLite</b><span>Patient/Household/catchment with transfer logs · append-only encounters · signed audit trail · DPDP consent artifacts</span></div>
-      <div class="node"><b>Sync Service</b><span>Per-device monotonic sequence · chunked batches · dead-letter queue · replayable journals</span></div>
+      <div class="node"><b>API Gateway Â· Node.js/Fastify</b><span>Device-bound PIN authn Â· JWT rotation Â· rate limits Â· TLS pinning</span></div>
+      <div class="node"><b>Generic Promise Engine</b><span>Dual-clock SLA scheduler Â· typed evidence registry Â· escalation ladders with HMAC ack deep-links Â· terminal annotations &amp; reconciliation</span></div>
+      <div class="node"><b>FHIR-shaped Store Â· SQLite</b><span>Patient/Household/catchment with transfer logs Â· append-only encounters Â· signed audit trail Â· DPDP consent artifacts</span></div>
+      <div class="node"><b>Sync Service</b><span>Per-device monotonic sequence Â· chunked batches Â· dead-letter queue Â· replayable journals</span></div>
     </div></div>
-  <div class="arrow reveal">▲ reads &nbsp;&nbsp;▼ queues &amp; responses</div>
-  <div class="archlayer reveal"><div class="alabel">Oversight tier — accountability made visible</div>
+  <div class="arrow reveal">â–² reads &nbsp;&nbsp;â–¼ queues &amp; responses</div>
+  <div class="archlayer reveal"><div class="alabel">Oversight tier â€” accountability made visible</div>
     <div class="nodes">
       <div class="node"><b>Doctor Tab</b><span>Store-and-forward consult queue with longitudinal context; voice notes played at the household by the worker</span></div>
-      <div class="node"><b>Ack Inboxes</b><span>Block MO escalations · cold-chain officer session misses · ANM approvals — unacknowledged items render red to their owner</span></div>
-      <div class="node"><b>District Board</b><span>KPI panel with formulas &amp; baseline mode · capture-mix decay alarms · anomaly flags · RCH CSV + NDJSON exports</span></div>
+      <div class="node"><b>Ack Inboxes</b><span>Block MO escalations Â· cold-chain officer session misses Â· ANM approvals â€” unacknowledged items render red to their owner</span></div>
+      <div class="node"><b>District Board</b><span>KPI panel with formulas &amp; baseline mode Â· capture-mix decay alarms Â· anomaly flags Â· RCH CSV + NDJSON exports</span></div>
     </div></div>
 </section>
 
@@ -189,13 +189,13 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
   <h2 class="reveal">Seven gated phases. The engine ships first.</h2>
   <p class="lead reveal">Every phase ends in a hard gate; no UI is written before the state machine's test matrix is green. Cut order protects six uncuttables: engine, capture ladder, escalation/ack surfaces, GSM bypass, household registry, independence flags.</p>
   <div class="pipe reveal">
-    <div class="phase"><i>Gate G-P0</i><b>P0 · Contracts</b><span>Prometheus-frozen OpenAPI, Promise model, transition tables, evidence-timeout table, rule-bundle format. API contract freeze.</span></div>
-    <div class="phase"><i>Gate G-P1</i><b>P1 · Promise Engine</b><span>Generic scheduler, ladders, reconciliation — full transition test matrix across all four types before any UI.</span></div>
-    <div class="phase"><i>Gate G-P2</i><b>P2 · Field App MVP</b><span>Airplane-mode flow: triage → refer → session log → attest. GSM bypass proven with data off.</span></div>
-    <div class="phase"><i>Gate G-P3</i><b>P3 · Capture + Ack Views</b><span>Arrival ladder live; MO/cold-chain inboxes; deep-link acks recorded with latency.</span></div>
-    <div class="phase"><i>Gate G-P4</i><b>P4 · Consult + Follow-up</b><span>Doctor-tab round trip; child-absent auto-generation from sessions.</span></div>
-    <div class="phase"><i>Gate G-P5</i><b>P5 · Messaging &amp; Exports</b><span>Non-accusatory SMS templates, mock outbox, RCH CSV + NDJSON.</span></div>
-    <div class="phase"><i>Gate G-P6</i><b>P6 · Hardening &amp; Demo</b><span>KPI formulas live with baseline mode; 9-beat demo runs on clean compose-up.</span></div>
+    <div class="phase"><i>Gate G-P0</i><b>P0 Â· Contracts</b><span>Prometheus-frozen OpenAPI, Promise model, transition tables, evidence-timeout table, rule-bundle format. API contract freeze.</span></div>
+    <div class="phase"><i>Gate G-P1</i><b>P1 Â· Promise Engine</b><span>Generic scheduler, ladders, reconciliation â€” full transition test matrix across all four types before any UI.</span></div>
+    <div class="phase"><i>Gate G-P2</i><b>P2 Â· Field App MVP</b><span>Airplane-mode flow: triage â†’ refer â†’ session log â†’ attest. GSM bypass proven with data off.</span></div>
+    <div class="phase"><i>Gate G-P3</i><b>P3 Â· Capture + Ack Views</b><span>Arrival ladder live; MO/cold-chain inboxes; deep-link acks recorded with latency.</span></div>
+    <div class="phase"><i>Gate G-P4</i><b>P4 Â· Consult + Follow-up</b><span>Doctor-tab round trip; child-absent auto-generation from sessions.</span></div>
+    <div class="phase"><i>Gate G-P5</i><b>P5 Â· Messaging &amp; Exports</b><span>Non-accusatory SMS templates, mock outbox, RCH CSV + NDJSON.</span></div>
+    <div class="phase"><i>Gate G-P6</i><b>P6 Â· Hardening &amp; Demo</b><span>KPI formulas live with baseline mode; 9-beat demo runs on clean compose-up.</span></div>
   </div>
 </section>
 
@@ -205,13 +205,13 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
   <h2 class="reveal">Boring where it should be, sharp where it counts.</h2>
   <div class="grid g2">
     <div class="card reveal"><span class="tag">Field &amp; Capture</span>
-      <span class="pill">Flutter 3.x</span><span class="pill">drift ORM over SQLCipher (AES-256 at rest)</span><span class="pill">drift→SQLite offline journal</span><span class="pill">BarcodeDetector / html5-qrcode</span><span class="pill">Plain-GSM SMS bypass</span></div>
+      <span class="pill">Flutter 3.x</span><span class="pill">drift ORM over SQLCipher (AES-256 at rest)</span><span class="pill">driftâ†’SQLite offline journal</span><span class="pill">BarcodeDetector / html5-qrcode</span><span class="pill">Plain-GSM SMS bypass</span></div>
     <div class="card reveal"><span class="tag">Core Services</span>
-      <span class="pill">Node.js · Fastify</span><span class="pill">SQLite</span><span class="pill">In-memory scheduler — deliberately no Redis</span><span class="pill">HMAC-signed ack deep-links</span></div>
+      <span class="pill">Node.js Â· Fastify</span><span class="pill">SQLite</span><span class="pill">In-memory scheduler â€” deliberately no Redis</span><span class="pill">HMAC-signed ack deep-links</span></div>
     <div class="card reveal"><span class="tag">Oversight Web</span>
       <span class="pill">React 18 + Vite</span><span class="pill">TanStack Query</span><span class="pill">Role-scoped dashboards</span><span class="pill">RCH CSV + FHIR NDJSON exports</span></div>
     <div class="card reveal"><span class="tag">Compliance by construction</span>
-      <span class="pill">FHIR-shaped resources</span><span class="pill">DPDP consent artifacts</span><span class="pill">TRAI DLT-compliant staff SMS only</span><span class="pill">ABDM sandbox adapter — never a dependency</span></div>
+      <span class="pill">FHIR-shaped resources</span><span class="pill">DPDP consent artifacts</span><span class="pill">TRAI DLT-compliant staff SMS only</span><span class="pill">ABDM sandbox adapter â€” never a dependency</span></div>
   </div>
 </section>
 
@@ -221,21 +221,21 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
   <h2 class="reveal">The seam is the product.</h2>
   <table class="reveal">
     <tr><th style="width:26%">Incumbent</th><th>What it verifies</th><th style="width:30%">Receiving-tier evidence?</th><th style="width:22%">Named-person escalation?</th></tr>
-    <tr><td>eSanjeevani</td><td>The consult itself, as an isolated event</td><td class="no">✗ Referrer never learns outcome</td><td class="no">✗</td></tr>
-    <tr><td>U-WIN</td><td>Dose administered, vaccinator self-logged</td><td class="no">✗ Same tier as commitment</td><td class="no">✗</td></tr>
-    <tr><td>eVIN</td><td>Depot stock counts</td><td class="no">✗ Not point-of-use</td><td class="no">✗</td></tr>
-    <tr><td>Khushi Baby CHIP</td><td>Program data, worker self-reported</td><td class="no">✗ Single-tier evidence</td><td class="no">✗</td></tr>
-    <tr><td><b>This system</b></td><td><b>Cross-tier promises: referral, session supply, consult, follow-up</b></td><td class="yes">✓ Always — registration match, point-of-use log, response receipt</td><td class="yes">✓ Acknowledgment required, latency measured</td></tr>
+    <tr><td>eSanjeevani</td><td>The consult itself, as an isolated event</td><td class="no">âœ— Referrer never learns outcome</td><td class="no">âœ—</td></tr>
+    <tr><td>U-WIN</td><td>Dose administered, vaccinator self-logged</td><td class="no">âœ— Same tier as commitment</td><td class="no">âœ—</td></tr>
+    <tr><td>eVIN</td><td>Depot stock counts</td><td class="no">âœ— Not point-of-use</td><td class="no">âœ—</td></tr>
+    <tr><td>Khushi Baby CHIP</td><td>Program data, worker self-reported</td><td class="no">âœ— Single-tier evidence</td><td class="no">âœ—</td></tr>
+    <tr><td><b>This system</b></td><td><b>Cross-tier promises: referral, session supply, consult, follow-up</b></td><td class="yes">âœ“ Always â€” registration match, point-of-use log, response receipt</td><td class="yes">âœ“ Acknowledgment required, latency measured</td></tr>
   </table>
   <div class="usp reveal">
     <h3>USP</h3>
-    <p>The only platform that verifies whether cross-tier public health promises were kept — using evidence from the tier that received the promise rather than the tier that made it — catching the documented failures that persist inside systems already working as designed, and escalating every miss to a named person who must acknowledge it.</p>
+    <p>The only platform that verifies whether cross-tier public health promises were kept â€” using evidence from the tier that received the promise rather than the tier that made it â€” catching the documented failures that persist inside systems already working as designed, and escalating every miss to a named person who must acknowledge it.</p>
   </div>
 </section>
 
 
 
-<footer>Sources &amp; scale figures: NHA/ABDM dashboard (Aug 2026 snapshot) · PIB MoHFW releases (Nov 2025) · PMC11422547 · NHSRC/FDSI workshop records · U-WIN/eVIN public metrics as cited in architecture_v5.md · Khushi Baby &amp; ARMMAN reported figures. Built as a live replacement for slide decks — navigate with ↑ ↓ keys or the menu. <b>Bharosa</b> (भरोसा) means trust — the thing this system makes verifiable.</footer>
+<footer>Sources &amp; scale figures: NHA/ABDM dashboard (Aug 2026 snapshot) Â· PIB MoHFW releases (Nov 2025) Â· PMC11422547 Â· NHSRC/FDSI workshop records Â· U-WIN/eVIN public metrics as cited in architecture_v5.md Â· Khushi Baby &amp; ARMMAN reported figures. Built as a live replacement for slide decks â€” navigate with â†‘ â†“ keys or the menu. <b>Bharosa</b> (à¤­à¤°à¥‹à¤¸à¤¾) means trust â€” the thing this system makes verifiable.</footer>
 <script>
 const secs=[...document.querySelectorAll('section[id]')];
 const links=[...document.querySelectorAll('nav.links a')];
@@ -262,3 +262,4 @@ addEventListener('keydown',e=>{
 </script>
 </body>
 </html>
+

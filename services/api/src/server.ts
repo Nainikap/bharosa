@@ -62,7 +62,7 @@ async function buildApp() {
     try {
       const htmlPath = path.resolve(process.cwd(), 'website/index.html');
       const html = fs.readFileSync(htmlPath, 'utf8');
-      reply.type('text/html').send(html);
+      reply.type('text/html; charset=utf-8').send(html);
     } catch (e) {
       reply.send({ message: 'Bharosa API is running', version: 'v1.0.0' });
     }
