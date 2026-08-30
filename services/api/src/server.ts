@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fjwt from '@fastify/jwt';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { dbPlugin } from './plugins/db';
 import { authPlugin } from './plugins/auth';
 import { schedulerPlugin } from './scheduler';
@@ -54,6 +56,17 @@ async function buildApp() {
     timestamp: new Date().toISOString(),
     version: 'v1.0.0',
   }));
+
+  // ─── Root Route ───────────────────────────────────────────────
+  app.get('/', async (request, reply) => {
+    try {
+      const htmlPath = path.resolve(process.cwd(), 'website/index.html');
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      reply.type('text/html').send(html);
+    } catch (e) {
+      reply.send({ message: 'Bharosa API is running', version: 'v1.0.0' });
+    }
+  });
 
   // ─── API Routes ───────────────────────────────────────────────
   await app.register(authRoutes,     { prefix: '/api/auth' });
