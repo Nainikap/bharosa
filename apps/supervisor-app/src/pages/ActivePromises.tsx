@@ -14,6 +14,8 @@ import {
   Send,
   Clock,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../api/client'
 import './ActivePromises.css'
 
 interface PromiseCard {
@@ -31,11 +33,41 @@ interface PromiseCard {
   missedDate?: string
 }
 
-const scheduledCards: PromiseCard[] = []
+const getInitialsColor = (id: string) => {
+  const colors = ['#e53935', '#d81b60', '#8e24aa', '#3949ab', '#1e88e5', '#00acc1', '#43a047', '#ff8f00'];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
 
-const overdueCards: PromiseCard[] = []
+const mapPromiseToCard = (p: any): PromiseCard => {
+  const refCode = p.id.split('-')[0].toUpperCase();
+  const name = p.committedTo?.facilityId || 'Unknown Patient';
+  const service = p.type === 'referral' ? 'Referral' : p.type;
+  const serviceIcon = 'immunization';
+  
+  const date = new Date(p.createdAt).toLocaleDateString();
+  const initials = name.substring(0, 2).toUpperCase();
+  
+  let overdueDays = 0;
+  if (p.deadline) {
+    const diff = Date.now() - new Date(p.deadline).getTime();
+    if (diff > 0) overdueDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
 
-const completedCards: PromiseCard[] = []
+  return {
+    id: p.id,
+    refCode,
+    name,
+    service,
+    serviceIcon: serviceIcon as any,
+    date,
+    initials,
+    initialsColor: getInitialsColor(p.id),
+    urgent: p.description?.priority === 'urgent' || p.description?.priority === 'emergency',
+    overdueDays: overdueDays > 0 ? overdueDays : undefined,
+  };
+};
 
 function getServiceIcon(type: string) {
   switch (type) {
@@ -50,6 +82,20 @@ function getServiceIcon(type: string) {
 
 export default function ActivePromises() {
   const [_filter, setFilter] = useState('all')
+
+  const { data: promises = [], isLoading } = useQuery({
+    queryKey: ['promises'],
+    queryFn: async () => {
+      const res = await apiClient.get('/promises');
+      return res.data.data;
+    },
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  const scheduledCards = promises.filter((p: any) => p.status === 'open').map(mapPromiseToCard);
+  const overdueCards = promises.filter((p: any) => p.status === 'escalated' || p.status === 'lapsed').map(mapPromiseToCard);
+  const completedCards = promises.filter((p: any) => p.status === 'kept').map(mapPromiseToCard);
 
   return (
     <div className="promises-page animate-fadeInUp">
@@ -87,7 +133,7 @@ export default function ActivePromises() {
             <button className="column-menu"><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
-            {scheduledCards.map((card) => (
+            {scheduledCards.map((card: PromiseCard) => (
               <div key={card.id} className="promise-card floating-card animate-fadeInUp">
                 <div className="card-top-row">
                   <span className="ref-badge">{card.refCode}</span>
@@ -123,7 +169,7 @@ export default function ActivePromises() {
             <button className="column-menu"><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
-            {overdueCards.map((card) => (
+            {overdueCards.map((card: PromiseCard) => (
               <div key={card.id} className={`promise-card floating-card overdue-card animate-fadeInUp ${card.urgent ? 'urgent' : ''}`}>
                 {card.urgent && (
                   <div className="urgent-ribbon">URGENT</div>
@@ -178,7 +224,7 @@ export default function ActivePromises() {
             <button className="column-menu"><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
-            {completedCards.map((card) => (
+            {completedCards.map((card: PromiseCard) => (
               <div key={card.id} className="promise-card floating-card completed-card animate-fadeInUp">
                 <div className="card-top-row">
                   <span className="ref-badge">{card.refCode}</span>
