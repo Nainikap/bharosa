@@ -36,7 +36,7 @@ const getInitialsColor = (id: string) => {
 };
 
 const mapPromiseToEscalation = (p: any): Escalation => {
-  const name = p.committedTo?.facilityId || 'Unknown Patient';
+  const name = p.patientName || p.villageName || p.committedTo?.facilityId || 'Unknown Patient';
   
   let lapsedTime = 'Unknown';
   let lapsedLevel: 'overdue' | 'warning' = 'warning';

@@ -104,30 +104,50 @@ export async function promiseRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest) => {
     const { type, status, facility, limit, offset } = request.query as any;
 
-    let query = 'SELECT * FROM promise WHERE 1=1';
+    let query = `
+      SELECT p.*,
+             pat.name as patient_name,
+             s.village_name as sess_village_name,
+             s.session_date as sess_date
+      FROM promise p
+      LEFT JOIN referral_detail r ON p.id = r.promise_id
+      LEFT JOIN session_detail s ON p.id = s.promise_id
+      LEFT JOIN consult_detail c ON p.id = c.promise_id
+      LEFT JOIN followup_detail f ON p.id = f.promise_id
+      LEFT JOIN patient pat ON pat.local_id = COALESCE(r.patient_id, c.patient_id, f.patient_id)
+      WHERE 1=1
+    `;
     const params: any[] = [];
     let idx = 1;
 
     if (type) {
-      query += ` AND type = $${idx++}`;
+      query += ` AND p.type = $${idx++}`;
       params.push(type);
     }
     if (status) {
-      query += ` AND status = $${idx++}`;
+      query += ` AND p.status = $${idx++}`;
       params.push(status);
     }
     if (facility) {
-      query += ` AND committed_to->>'facilityId' = $${idx++}`;
+      query += ` AND p.committed_to->>'facilityId' = $${idx++}`;
       params.push(facility);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx++}`;
+    query += ` ORDER BY p.created_at DESC LIMIT $${idx++} OFFSET $${idx++}`;
     params.push(parseInt(limit || '50', 10));
     params.push(parseInt(offset || '0', 10));
 
     const { rows } = await fastify.db.query(query, params);
 
-    return { data: rows.map(formatPromise), total: rows.length };
+    return {
+      data: rows.map(r => ({
+        ...formatPromise(r),
+        patientName: r.patient_name,
+        villageName: r.sess_village_name,
+        sessionDate: r.sess_date,
+      })),
+      total: rows.length
+    };
   });
 
   // ─── GET /promises/:id ───────────────────────────────────────
@@ -137,7 +157,19 @@ export async function promiseRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as any;
 
-    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query(`
+      SELECT p.*,
+             pat.name as patient_name,
+             s.village_name as sess_village_name,
+             s.session_date as sess_date
+      FROM promise p
+      LEFT JOIN referral_detail r ON p.id = r.promise_id
+      LEFT JOIN session_detail s ON p.id = s.promise_id
+      LEFT JOIN consult_detail c ON p.id = c.promise_id
+      LEFT JOIN followup_detail f ON p.id = f.promise_id
+      LEFT JOIN patient pat ON pat.local_id = COALESCE(r.patient_id, c.patient_id, f.patient_id)
+      WHERE p.id = $1
+    `, [id]);
     if (rows.length === 0) {
       return reply.status(404).send({ error: 'Promise not found' });
     }
@@ -148,6 +180,9 @@ export async function promiseRoutes(fastify: FastifyInstance) {
 
     return {
       ...formatPromise(rows[0]),
+      patientName: rows[0].patient_name,
+      villageName: rows[0].sess_village_name,
+      sessionDate: rows[0].sess_date,
       events,
     };
   });

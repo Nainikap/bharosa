@@ -42,7 +42,7 @@ const getInitialsColor = (id: string) => {
 
 const mapPromiseToCard = (p: any): PromiseCard => {
   const refCode = p.id.split('-')[0].toUpperCase();
-  const name = p.committedTo?.facilityId || 'Unknown Patient';
+  const name = p.patientName || p.villageName || p.committedTo?.facilityId || 'Unknown Patient';
   const service = p.type === 'referral' ? 'Referral' : p.type;
   const serviceIcon = 'immunization';
   

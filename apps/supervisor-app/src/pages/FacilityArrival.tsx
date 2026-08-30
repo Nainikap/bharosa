@@ -82,14 +82,14 @@ export default function FacilityArrival() {
             <ScanBarcode size={20} className="input-icon" />
             <input
               type="text"
-              placeholder="E.G. REF-2023-891A"
+              placeholder="Scan or enter ID (e.g. 12345)"
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               className="arrival-input"
             />
-            <span className="input-hint">Press Enter ↵</span>
+            <span className="input-hint">Press Enter ?</span>
           </div>
 
           <div className="form-actions">
@@ -112,23 +112,29 @@ export default function FacilityArrival() {
       {/* Recently captured */}
       <div className="recent-section animate-fadeInUp" style={{ animationDelay: '200ms' }}>
         <h3 className="section-label">RECENTLY CAPTURED</h3>
-        <div className="recent-list stagger">
-          {recentCaptures.map((capture: RecentCapture) => (
-            <div key={capture.refCode} className="recent-item animate-fadeInUp">
-              <div className="recent-icon">
-                <User size={16} />
+        {recentCaptures.length === 0 ? (
+          <div className="empty-state" style={{ textAlign: 'center', padding: '2rem', color: 'var(--cl-text-muted)' }}>
+            <p>No recent arrivals captured.</p>
+          </div>
+        ) : (
+          <div className="recent-list stagger">
+            {recentCaptures.map((capture: RecentCapture, idx: number) => (
+              <div key={idx} className="recent-item animate-fadeInUp">
+                <div className="recent-icon">
+                  <User size={16} />
+                </div>
+                <div className="recent-info">
+                  <span className="recent-ref">{capture.refCode}</span>
+                  <span className="recent-name">{capture.name}</span>
+                </div>
+                <span className="recent-time">
+                  <Clock size={12} />
+                  {capture.time}
+                </span>
               </div>
-              <div className="recent-info">
-                <span className="recent-ref">{capture.refCode}</span>
-                <span className="recent-name">{capture.name}</span>
-              </div>
-              <span className="recent-time">
-                <Clock size={12} />
-                {capture.time}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
