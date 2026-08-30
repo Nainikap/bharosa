@@ -14,7 +14,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // Check if device already exists
-    const { rows: existing } = await fastify.pg.query(
+    const { rows: existing } = await fastify.db.query(
       'SELECT device_id FROM device WHERE device_id = $1', [deviceId]
     );
     if (existing.length > 0) {
@@ -23,13 +23,13 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const pinHash = await hashPin(pin);
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO device (device_id, pin_hash, role, worker_id, facility_id)
       VALUES ($1, $2, $3, $4, $5)
     `, [deviceId, pinHash, role, workerId, facilityId || null]);
 
     // Initialize sync cursor
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO sync_cursor (device_id, last_seq) VALUES ($1, 0)
     `, [deviceId]);
 
@@ -59,7 +59,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Missing deviceId or pin' });
     }
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       'SELECT * FROM device WHERE device_id = $1', [deviceId]
     );
     if (rows.length === 0) {
@@ -99,7 +99,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const payload = fastify.jwt.verify(request.body as any as string || '');
       const { deviceId, tokenVersion } = payload as any;
 
-      const { rows } = await fastify.pg.query(
+      const { rows } = await fastify.db.query(
         'SELECT * FROM device WHERE device_id = $1', [deviceId]
       );
       if (rows.length === 0 || rows[0].token_version !== tokenVersion) {

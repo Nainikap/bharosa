@@ -15,7 +15,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
     }
 
     // Check seq conflict
-    const { rows: cursorRows } = await fastify.pg.query(
+    const { rows: cursorRows } = await fastify.db.query(
       'SELECT last_seq FROM sync_cursor WHERE device_id = $1',
       [user.deviceId]
     );
@@ -32,7 +32,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -63,7 +63,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
           ]);
 
           await client.query(`
-            UPDATE promise SET sla_start = NOW() WHERE id = $1 AND sla_start IS NULL
+            UPDATE promise SET sla_start = datetime('now') WHERE id = $1 AND sla_start IS NULL
           `, [op.rowId]);
 
           const { rows: timeoutRows } = await client.query(`
@@ -75,7 +75,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
           if (timeoutRows.length > 0 && timeoutRows[0].timeout_ms > 0) {
             await client.query(`
               UPDATE promise
-              SET deadline = sla_start + ($1 || ' milliseconds')::interval
+              SET deadline = datetime(sla_start, '+' || ($1 / 1000.0) || ' seconds')
               WHERE id = $2 AND deadline IS NULL AND sla_start IS NOT NULL
             `, [timeoutRows[0].timeout_ms.toString(), op.rowId]);
           }
@@ -83,12 +83,12 @@ export async function syncRoutes(fastify: FastifyInstance) {
       }
 
       const { rows: newSeqRows } = await client.query(
-        "SELECT currval('global_sync_seq') AS seq"
+        "SELECT last_insert_rowid() AS seq"
       );
       const newSeq = parseInt(newSeqRows[0].seq, 10);
 
       await client.query(`
-        UPDATE sync_cursor SET last_seq = $1, last_sync_at = NOW()
+        UPDATE sync_cursor SET last_seq = $1, last_sync_at = datetime('now')
         WHERE device_id = $2
       `, [newSeq, user.deviceId]);
 
@@ -112,7 +112,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
     const { since } = request.query as any;
     const sinceSeq = parseInt(since || '0', 10);
 
-    const { rows: deltas } = await fastify.pg.query(`
+    const { rows: deltas } = await fastify.db.query(`
       SELECT seq, table_name, op, row_id, data, priority, ts
       FROM sync_journal
       WHERE seq > $1
@@ -152,11 +152,11 @@ export async function syncRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest) => {
     const user = request.user;
 
-    const { rows } = await fastify.pg.query(`
+    const { rows } = await fastify.db.query(`
       SELECT last_seq, last_sync_at FROM sync_cursor WHERE device_id = $1
     `, [user.deviceId]);
 
-    const { rows: latestRows } = await fastify.pg.query(
+    const { rows: latestRows } = await fastify.db.query(
       "SELECT COALESCE(MAX(seq), 0) AS max_seq FROM sync_journal"
     );
 

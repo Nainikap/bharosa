@@ -39,7 +39,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
     params.push(parseInt(limit || '50', 10));
     params.push(parseInt(offset || '0', 10));
 
-    const { rows } = await fastify.pg.query(query, params);
+    const { rows } = await fastify.db.query(query, params);
 
     return {
       data: rows.map(r => ({
@@ -72,7 +72,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
       return reply.status(422).send({ error: 'outcomeStatus is required (completed|not_found|refused|migrated)' });
     }
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       "SELECT * FROM promise WHERE id = $1 AND type = 'followup'", [id]
     );
     if (rows.length === 0) {
@@ -93,7 +93,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
       capturedAt: new Date(),
     };
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -141,7 +141,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
     }
 
     // Find the session detail
-    const { rows: sessionRows } = await fastify.pg.query(`
+    const { rows: sessionRows } = await fastify.db.query(`
       SELECT sd.*, p.committed_by
       FROM session_detail sd
       JOIN promise p ON p.id = sd.promise_id
@@ -156,7 +156,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
 
     // Find patients in this village who were due but didn't attend
     // (Simplified: in production this cross-references the RI due-list)
-    const { rows: duePatients } = await fastify.pg.query(`
+    const { rows: duePatients } = await fastify.db.query(`
       SELECT p.local_id, p.name, p.village
       FROM patient p
       WHERE LOWER(p.village) = LOWER($1)
@@ -165,7 +165,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
     const created: any[] = [];
     const committedBy = session.committed_by;
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 

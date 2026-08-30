@@ -29,7 +29,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
     let timeoutMs = 0;
     try { timeoutMs = getTimeoutMs('referral', subtype); } catch { /* no-op */ }
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -118,7 +118,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
     params.push(parseInt(limit || '50', 10));
     params.push(parseInt(offset || '0', 10));
 
-    const { rows } = await fastify.pg.query(query, params);
+    const { rows } = await fastify.db.query(query, params);
 
     return { data: rows, total: rows.length };
   });
@@ -129,7 +129,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as any;
 
-    const { rows } = await fastify.pg.query(`
+    const { rows } = await fastify.db.query(`
       SELECT p.*, rd.patient_id, rd.priority, rd.destination_facility_id,
              rd.human_code, rd.qr_code, rd.referral_reason, rd.triage_route
       FROM promise p
@@ -141,7 +141,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Referral not found' });
     }
 
-    const { rows: events } = await fastify.pg.query(
+    const { rows: events } = await fastify.db.query(
       'SELECT * FROM promise_event WHERE promise_id = $1 ORDER BY ts ASC', [id]
     );
 
@@ -157,10 +157,10 @@ export async function referralRoutes(fastify: FastifyInstance) {
     const user = request.user;
 
     // Accept = apply registration_match evidence
-    const { rows } = await fastify.pg.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
     if (rows.length === 0) return reply.status(404).send({ error: 'Referral not found' });
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       UPDATE promise SET status = 'kept', evidence = $1, version = version + 1 WHERE id = $2
     `, [
       JSON.stringify({
@@ -172,7 +172,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
       id,
     ]);
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor)
       VALUES (gen_random_uuid(), $1, 'promise.kept', $2, 'kept', $3)
     `, [id, rows[0].status, JSON.stringify({ role: user.role, workerId: user.workerId })]);
@@ -186,14 +186,14 @@ export async function referralRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any;
     const user = request.user;
 
-    const { rows } = await fastify.pg.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
     if (rows.length === 0) return reply.status(404).send({ error: 'Referral not found' });
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       UPDATE promise SET status = 'closed_na', version = version + 1 WHERE id = $1
     `, [id]);
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
       VALUES (gen_random_uuid(), $1, 'promise.closed_na', $2, 'closed_na', $3, $4)
     `, [id, rows[0].status, JSON.stringify({ role: user.role, workerId: user.workerId }),

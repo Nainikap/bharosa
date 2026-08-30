@@ -45,7 +45,7 @@ async function buildApp() {
   // ─── Auth decorator ───────────────────────────────────────────
   await app.register(authPlugin);
 
-  // ─── Scheduler (pg-boss) ──────────────────────────────────────
+  // ─── Scheduler (in-memory setInterval) ─────────────────────────
   await app.register(schedulerPlugin);
 
   // ─── Health check ─────────────────────────────────────────────

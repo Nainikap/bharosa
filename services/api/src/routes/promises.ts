@@ -49,7 +49,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       timeoutMs = getTimeoutMs(type, subtype);
     } catch { /* 0 = no auto-deadline */ }
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -125,7 +125,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
     params.push(parseInt(limit || '50', 10));
     params.push(parseInt(offset || '0', 10));
 
-    const { rows } = await fastify.pg.query(query, params);
+    const { rows } = await fastify.db.query(query, params);
 
     return { data: rows.map(formatPromise), total: rows.length };
   });
@@ -137,12 +137,12 @@ export async function promiseRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as any;
 
-    const { rows } = await fastify.pg.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
     if (rows.length === 0) {
       return reply.status(404).send({ error: 'Promise not found' });
     }
 
-    const { rows: events } = await fastify.pg.query(
+    const { rows: events } = await fastify.db.query(
       'SELECT * FROM promise_event WHERE promise_id = $1 ORDER BY ts ASC', [id]
     );
 
@@ -171,7 +171,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       return reply.status(422).send({ error: `Invalid source. Must be one of: ${validSources.join(', ')}` });
     }
 
-    const { rows } = await fastify.pg.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
     if (rows.length === 0) {
       return reply.status(404).send({ error: 'Promise not found' });
     }
@@ -192,7 +192,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ error: result.code, message: result.message });
     }
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -232,7 +232,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = request.body as any;
 
-    const { rows } = await fastify.pg.query('SELECT * FROM promise WHERE id = $1', [id]);
+    const { rows } = await fastify.db.query('SELECT * FROM promise WHERE id = $1', [id]);
     if (rows.length === 0) {
       return reply.status(404).send({ error: 'Promise not found' });
     }
@@ -245,11 +245,11 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ error: result.code, message: result.message });
     }
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       UPDATE promise SET version = $1 WHERE id = $2
     `, [result.updatedFields.version, id]);
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
     `, [id, result.event.eventName, result.event.fromStatus, result.event.toStatus,
