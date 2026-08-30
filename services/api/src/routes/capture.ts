@@ -62,8 +62,8 @@ export async function captureRoutes(fastify: FastifyInstance) {
       // Log encounter
       if (body.patientId) {
         await client.query(`
-          INSERT INTO encounter (patient_id, type, facility_id, worker_id, data)
-          VALUES ($1, 'arrival', $2, $3, $4)
+          INSERT INTO encounter (id, patient_id, type, facility_id, worker_id, data)
+          VALUES (gen_random_uuid(), $1, 'arrival', $2, $3, $4)
         `, [body.patientId, user.facilityId, user.workerId, JSON.stringify({ source: captureSource })]);
       }
 

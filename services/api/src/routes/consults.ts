@@ -29,8 +29,8 @@ export async function consultRoutes(fastify: FastifyInstance) {
       await client.query('BEGIN');
 
       const { rows } = await client.query(`
-        INSERT INTO promise (type, committed_by, committed_to, description, sla_start, deadline, status)
-        VALUES ('consult', $1, $2, $3, NOW(), $4, 'open')
+        INSERT INTO promise (id, type, committed_by, committed_to, description, sla_start, deadline, status)
+        VALUES (gen_random_uuid(), 'consult', $1, $2, $3, NOW(), $4, 'open')
         RETURNING *
       `, [
         JSON.stringify(committedBy),

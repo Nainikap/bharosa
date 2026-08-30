@@ -35,8 +35,8 @@ export async function referralRoutes(fastify: FastifyInstance) {
 
       // Create the promise
       const { rows } = await client.query(`
-        INSERT INTO promise (type, committed_by, committed_to, description, sla_start, deadline, status)
-        VALUES ('referral', $1, $2, $3, NOW(), $4, 'open')
+        INSERT INTO promise (id, type, committed_by, committed_to, description, sla_start, deadline, status)
+        VALUES (gen_random_uuid(), 'referral', $1, $2, $3, NOW(), $4, 'open')
         RETURNING *
       `, [
         JSON.stringify(committedBy),

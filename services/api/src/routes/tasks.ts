@@ -180,8 +180,8 @@ export async function taskRoutes(fastify: FastifyInstance) {
 
         // Create follow-up promise
         const { rows: promiseRows } = await client.query(`
-          INSERT INTO promise (type, committed_by, committed_to, description, sla_start, status)
-          VALUES ('followup', $1, $2, $3, NOW(), 'open')
+          INSERT INTO promise (id, type, committed_by, committed_to, description, sla_start, status)
+          VALUES (gen_random_uuid(), 'followup', $1, $2, $3, NOW(), 'open')
           RETURNING *
         `, [
           JSON.stringify(committedBy),

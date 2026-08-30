@@ -54,8 +54,8 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       await client.query('BEGIN');
 
       const { rows } = await client.query(`
-        INSERT INTO promise (type, committed_by, committed_to, description, sla_start, deadline, independence, status)
-        VALUES ($1, $2, $3, $4, NOW(), $5, $6, 'open')
+        INSERT INTO promise (id, type, committed_by, committed_to, description, sla_start, deadline, independence, status)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), $5, $6, 'open')
         RETURNING *
       `, [
         type,

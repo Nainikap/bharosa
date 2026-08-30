@@ -39,8 +39,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
 
         // Create promise with independence: plan_seeded (V6)
         const { rows } = await client.query(`
-          INSERT INTO promise (type, committed_by, committed_to, description, sla_start, deadline, independence, status)
-          VALUES ('vaccine_supply', $1, $2, $3, NOW(), $4, 'plan_seeded', 'open')
+          INSERT INTO promise (id, type, committed_by, committed_to, description, sla_start, deadline, independence, status)
+          VALUES (gen_random_uuid(), 'vaccine_supply', $1, $2, $3, NOW(), $4, 'plan_seeded', 'open')
           RETURNING *
         `, [
           JSON.stringify(committedBy),
