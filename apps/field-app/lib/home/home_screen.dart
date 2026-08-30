@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() => syncing = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(res.offline ? 'ऑफलाइन — बाद में सिंक होगा' : 'सिंक: ${res.synced} भेजे, ${res.failed} विफल'),
+      content: Text(res.offline ? 'Offline — will sync later' : 'Synced: ${res.synced} sent, ${res.failed} failed'),
       backgroundColor: res.offline ? Colors.orange : AppColors.teal,
     ));
     _load();
@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'भरोसा — $ashaName',
+      title: 'Bharosa — $ashaName',
       actions: [
         IconButton(icon: const Icon(Icons.sync), onPressed: syncing ? null : _doSync),
         IconButton(
@@ -78,71 +78,64 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('हर वादा, निभाया या बढ़ाया',
+                const Text('Start a visit. Assess symptoms. Close the care loop.',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 4),
-                const Text('PROMISE MADE → DEADLINE SET → EVIDENCE → ESCALATION ON MISS',
+                const Text('TRIAGE → REFERRAL → FACILITY ARRIVAL → CONFIRMATION',
                     style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 0.5)),
                 const SizedBox(height: 10),
                 Row(children: [
                   _chip('${pendingSync} pending sync', AppColors.teal),
                   const SizedBox(width: 8),
-                  _chip('$openReferrals open referrals', AppColors.blue),
+                  _chip('$openReferrals open referrals', AppColors.yellow),
                 ]),
               ]),
             ),
             const SizedBox(height: 14),
             Row(children: [
-              Expanded(child: StatCard(value: '$openReferrals', label: 'Open / Escalated', color: AppColors.blue)),
+              Expanded(child: StatCard(value: '$openReferrals', label: 'Open / Escalated', color: AppColors.yellow)),
               const SizedBox(width: 10),
               Expanded(child: StatCard(value: '$pendingSync', label: 'Pending sync', color: pendingSync > 0 ? Colors.orange : AppColors.teal)),
             ]),
             const SizedBox(height: 14),
-            const Text('त्वरित कार्य', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
+            const Text('Field work', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             _actionCard(
-              icon: Icons.groups,
-              title: 'केसलोड देखें',
-              subtitle: '8 households · 18 members · Household anchor से पहचान',
+              icon: Icons.medical_services_outlined,
+              title: 'Start New Visit',
+              subtitle: 'Choose a household member and complete IMNCI-lite triage',
+              color: AppColors.yellow,
+              onTap: () => Navigator.pushNamed(context, '/newVisit').then((_) => _load()),
+            ),
+            _actionCard(
+              icon: Icons.assignment_outlined,
+              title: 'Referral Caseload',
+              subtitle: 'Review referred patients, facilities, status, and delivery details',
               color: AppColors.teal,
               onTap: () => Navigator.pushNamed(context, '/caseload').then((_) => _load()),
             ),
             _actionCard(
-              icon: Icons.medical_services_outlined,
-              title: 'नई विज़िट / ट्राइएज',
-              subtitle: 'IMNCI-lite लक्षण → रूट: self-care / PHC-रेफरल / रेड-फ्लैग',
-              color: AppColors.blue,
-              onTap: () => Navigator.pushNamed(context, '/caseload').then((_) => _load()),
+              icon: Icons.sync,
+              title: syncing ? 'Syncing changes...' : 'Sync Pending Work',
+              subtitle: pendingSync == 0
+                  ? 'All locally saved work is up to date'
+                  : '$pendingSync item${pendingSync == 1 ? '' : 's'} waiting to sync',
+              color: pendingSync == 0 ? AppColors.teal : Colors.orange,
+              onTap: syncing ? null : _doSync,
             ),
-            _actionCard(
-              icon: Icons.assignment,
-              title: 'रेफरल्स देखें',
-              subtitle: 'कोड/QR के साथ — ऑफलाइन बनाए गए भी दिखेंगे',
-              color: const Color(0xFFB388FF),
-              onTap: () => Navigator.pushNamed(context, '/referrals').then((_) => _load()),
-            ),
-            _actionCard(
-              icon: Icons.warning_amber,
-              title: 'इमरजेंसी डेमो',
-              subtitle: 'रेड-फ्लैग GSM SMS bypass (डेटा बंद होने पर भी)',
-              color: AppColors.red,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('किसी मरीज पर Visit → लाल निशान चुनें → Emergency स्क्रीन देखें')));
-                Navigator.pushNamed(context, '/caseload');
-              },
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.line)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('v1 minimal prototype', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700, fontSize: 12)),
+                const Row(children: [
+                  Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 18),
+                  SizedBox(width: 6),
+                  Text('Emergency readiness', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700, fontSize: 12)),
+                ]),
                 const SizedBox(height: 4),
-                const Text('Caseload · Triage · Referral create (code+QR) · Emergency GSM bypass · Offline SyncJournal + dual-clock',
+                const Text('Red-flag symptoms in triage automatically open the emergency referral flow. If data is unavailable, the app uses SMS fallback.',
                     style: TextStyle(color: AppColors.muted, fontSize: 11)),
-                const SizedBox(height: 6),
-                Text('Backend v1 docs: docs/technical_documentations/backend.md  ·  Free stack — MockSmsProvider (no cost)',
-                    style: TextStyle(color: AppColors.muted.withOpacity(0.8), fontSize: 10)),
               ]),
             ),
             const SizedBox(height: 8),
@@ -161,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _actionCard({required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
+  Widget _actionCard({required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback? onTap}) {
     return Card(
       color: AppColors.card,
       shape: RoundedRectangleBorder(side: const BorderSide(color: AppColors.line), borderRadius: BorderRadius.circular(12)),

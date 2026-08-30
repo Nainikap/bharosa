@@ -6,7 +6,8 @@ import '../utils/constants.dart';
 import '../widgets/app_scaffold.dart';
 
 class ReferralListScreen extends StatefulWidget {
-  const ReferralListScreen({super.key});
+  final String title;
+  const ReferralListScreen({super.key, this.title = 'Referrals'});
   @override
   State<ReferralListScreen> createState() => _ReferralListScreenState();
 }
@@ -17,7 +18,7 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
   Color statusColor(String s) {
     switch (s) {
       case 'open':
-        return AppColors.blue;
+        return AppColors.yellow;
       case 'kept':
         return AppColors.teal;
       case 'lapsed':
@@ -33,7 +34,7 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
   Widget build(BuildContext context) {
     final db = Provider.of<AppDatabase>(context);
     return AppScaffold(
-      title: 'रेफरल्स',
+      title: widget.title,
       actions: [
         PopupMenuButton<String>(
           onSelected: (v) => setState(() => filter = v),
@@ -57,9 +58,9 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.assignment, size: 48, color: AppColors.muted),
                 const SizedBox(height: 10),
-                const Text('कोई रेफरल नहीं', style: TextStyle(color: AppColors.muted)),
+                const Text('No referrals', style: TextStyle(color: AppColors.muted)),
                 const SizedBox(height: 6),
-                Text(filter == 'all' ? 'केसलोड से नई विज़िट शुरू करें' : 'फिल्टर: $filter', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                Text(filter == 'all' ? 'Referrals will appear here after you create them.' : 'Filter: $filter', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               ]),
             );
           }

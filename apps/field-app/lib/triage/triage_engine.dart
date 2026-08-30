@@ -22,18 +22,18 @@ class SymptomOption {
 // Minimal IMNCI-lite rule bundle — v1 covers maternal + child general danger signs
 class TriageEngine {
   static final List<SymptomOption> options = [
-    SymptomOption('fever', 'बुखार', 'Fever', Icons.thermostat, false, 'general'),
-    SymptomOption('cough', 'खांसी', 'Cough', Icons.air, false, 'child'),
-    SymptomOption('fast_breathing', 'तेज़ साँस', 'Fast breathing', Icons.air, true, 'child'),
-    SymptomOption('diarrhea', 'दस्त', 'Diarrhea', Icons.water_drop, false, 'child'),
-    SymptomOption('vomiting', 'उल्टी', 'Vomiting', Icons.sick, false, 'general'),
-    SymptomOption('swelling', 'सूजन', 'Swelling (face/hands)', Icons.accessibility_new, true, 'maternal'),
-    SymptomOption('high_bp', 'BP 140+ / सिरदर्द', 'High BP / headache', Icons.monitor_heart, true, 'maternal'),
-    SymptomOption('bleeding', 'रक्तस्राव', 'Bleeding', Icons.bloodtype, true, 'maternal'),
-    SymptomOption('no_movement', 'बच्चे की हलचल नहीं', 'No fetal movement', Icons.child_care, true, 'maternal'),
-    SymptomOption('chest_indrawing', 'छाती अंदर धँसना', 'Chest indrawing', Icons.air, true, 'child'),
-    SymptomOption('lethargy', 'सुस्ती / बेहोशी', 'Lethargy / unconscious', Icons.bedtime, true, 'general'),
-    SymptomOption('convulsion', 'दौरा / झटके', 'Convulsion', Icons.warning_amber, true, 'general'),
+    SymptomOption('fever', 'Fever', 'Fever', Icons.thermostat, false, 'general'),
+    SymptomOption('cough', 'Cough', 'Cough', Icons.air, false, 'child'),
+    SymptomOption('fast_breathing', 'Fast breathing', 'Fast breathing', Icons.air, true, 'child'),
+    SymptomOption('diarrhea', 'Diarrhea', 'Diarrhea', Icons.water_drop, false, 'child'),
+    SymptomOption('vomiting', 'Vomiting', 'Vomiting', Icons.sick, false, 'general'),
+    SymptomOption('swelling', 'Swelling (face/hands)', 'Swelling (face/hands)', Icons.accessibility_new, true, 'maternal'),
+    SymptomOption('high_bp', 'High BP / headache', 'High BP / headache', Icons.monitor_heart, true, 'maternal'),
+    SymptomOption('bleeding', 'Bleeding', 'Bleeding', Icons.bloodtype, true, 'maternal'),
+    SymptomOption('no_movement', 'No fetal movement', 'No fetal movement', Icons.child_care, true, 'maternal'),
+    SymptomOption('chest_indrawing', 'Chest indrawing', 'Chest indrawing', Icons.air, true, 'child'),
+    SymptomOption('lethargy', 'Lethargy / unconscious', 'Lethargy / unconscious', Icons.bedtime, true, 'general'),
+    SymptomOption('convulsion', 'Convulsion', 'Convulsion', Icons.warning_amber, true, 'general'),
   ];
 
   static TriageResult evaluate(Set<String> selectedIds) {
@@ -43,7 +43,7 @@ class TriageEngine {
     if (redFlags.isNotEmpty) {
       return TriageResult(
         RouteDecision.redFlag,
-        'लाल निशान — तुरंत रेफरल + इमरजेंसी अलर्ट',
+        'Red-flag — immediate referral + emergency alert',
         redFlags.map((e) => e.labelEn).toList(),
       );
     }
@@ -54,24 +54,24 @@ class TriageEngine {
       // Teleconsult route reserved for v2 consult promise
       return TriageResult(
         RouteDecision.phcVisit,
-        'पीएचसी/सीएचसी रेफरल आवश्यक',
+        'PHC/CHC referral required',
         selected.map((e) => e.labelEn).toList(),
       );
     }
 
-    return TriageResult(RouteDecision.selfCare, 'घर पर देखभाल + फॉलो-अप', []);
+    return TriageResult(RouteDecision.selfCare, 'Home care + follow-up', []);
   }
 
-  static String routeLabel(RouteDecision r) {
+static String routeLabel(RouteDecision r) {
     switch (r) {
       case RouteDecision.selfCare:
-        return 'घर पर देखभाल';
+        return 'Home care';
       case RouteDecision.phcVisit:
-        return 'PHC/CHC रेफरल';
+        return 'PHC/CHC referral';
       case RouteDecision.teleconsult:
-        return 'टेली-परामर्श (v2)';
+        return 'Teleconsult (v2)';
       case RouteDecision.redFlag:
-        return 'रेड-फ्लैग इमरजेंसी';
+        return 'Red-flag emergency';
     }
   }
 

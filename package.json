@@ -6,6 +6,11 @@
     "services/*"
   ],
   "dependencies": {
+    "package.json": "^2.0.1",
     "pdfkit": "^0.20.1"
+  },
+  "devDependencies": {
+    "fastify-cli": "^8.0.0",
+    "tsx": "^4.23.13"
   }
 }

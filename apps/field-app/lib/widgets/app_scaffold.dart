@@ -72,7 +72,7 @@ class PrimaryButton extends StatelessWidget {
         icon: Icon(icon ?? Icons.arrow_forward, size: 18),
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color ?? AppColors.blue,
+          backgroundColor: color ?? AppColors.yellow,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

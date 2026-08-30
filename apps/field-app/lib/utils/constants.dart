@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const navy = Color(0xFF122C49);
-  static const blue = Color(0xFF5EB0FF);
+  static const navy = Color(0xFF1E3A5F);
+  static const yellow = Color(0xFFFFB300);
   static const teal = Color(0xFF2FD4BD);
-  static const bg = Color(0xFF0A1322);
-  static const card = Color(0xFF101D31);
-  static const line = Color(0xFF22344C);
-  static const head = Color(0xFFEAF2FB);
-  static const muted = Color(0xFF8FA5BC);
+  static const bg = Color(0xFFFFFFFF);
+  static const card = Color(0xFFFFFFFF);
+  static const line = Color(0xFF000000);
+  static const head = Color(0xFF111827);
+  static const muted = Color(0xFF6B7280);
   static const red = Color(0xFFFF8B98);
-  static const redBg = Color(0xFF321A21);
+  static const redBg = Color(0xFFFEF3F3);
 }
 
 class AppConfig {
@@ -22,7 +22,7 @@ class AppConfig {
   // Block-office SMS gateway number for emergency bypass (plain GSM, no data needed)
   static const gatewaySmsNumber = String.fromEnvironment(
     'GATEWAY_SMS_NUMBER',
-    defaultValue: '+919999999999',
+    defaultValue: '+919755760921',
   );
   // Local storage keys
   static const pinKey = 'bharosa_pin';

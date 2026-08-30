@@ -11,14 +11,14 @@ class CaseloadScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final db = Provider.of<AppDatabase>(context, listen: false);
     return AppScaffold(
-      title: 'केसलोड — Households',
+      title: 'Caseload — Households',
       body: FutureBuilder<List<Household>>(
         future: db.getAllHouseholds(),
         builder: (context, snap) {
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           final list = snap.data!;
           if (list.isEmpty) {
-            return const Center(child: Text('कोई household नहीं', style: TextStyle(color: AppColors.muted)));
+            return const Center(child: Text('No households available', style: TextStyle(color: AppColors.muted)));
           }
           return ListView.separated(
             padding: const EdgeInsets.all(14),
@@ -87,7 +87,7 @@ class HouseholdDetailScreen extends StatelessWidget {
         }
         final h = snap.data;
         if (h == null) {
-          return const AppScaffold(title: 'Household', body: Center(child: Text('नहीं मिला', style: TextStyle(color: AppColors.muted))));
+          return const AppScaffold(title: 'Household', body: Center(child: Text('Not found', style: TextStyle(color: AppColors.muted))));
         }
         return AppScaffold(
           title: h.headName,
@@ -113,7 +113,7 @@ class HouseholdDetailScreen extends StatelessWidget {
                     ]),
                   ),
                   const SizedBox(height: 14),
-                  const Text('परिवार सदस्य', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
+                  const Text('Family members', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   ...patients.map((p) => Card(
                         color: AppColors.card,
@@ -144,7 +144,7 @@ class HouseholdDetailScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Divider(color: AppColors.line),
                   const SizedBox(height: 8),
-                  const Text('नोट: सदस्य पर टैप करके नई विज़िट / ट्राइएज शुरू करें।',
+                  const Text('Note: Tap on member to start new Visit / Triage.',
                       style: TextStyle(color: AppColors.muted, fontSize: 11)),
                 ],
               );

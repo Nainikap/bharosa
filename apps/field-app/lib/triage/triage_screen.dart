@@ -19,7 +19,7 @@ class _TriageScreenState extends State<TriageScreen> {
   @override
   void initState() {
     super.initState();
-    _tts.setLanguage('hi-IN');
+    _tts.setLanguage('en-IN');
     _tts.setSpeechRate(0.45);
   }
 
@@ -31,7 +31,7 @@ class _TriageScreenState extends State<TriageScreen> {
 
   Future<void> _speak(SymptomOption o) async {
     setState(() => speaking = true);
-    await _tts.speak('${o.labelHi}. ${o.labelEn}');
+    await _tts.speak(o.labelEn);
     await Future.delayed(const Duration(milliseconds: 900));
     if (mounted) setState(() => speaking = false);
   }
@@ -52,7 +52,7 @@ class _TriageScreenState extends State<TriageScreen> {
     final result = TriageEngine.evaluate(selected);
 
     return AppScaffold(
-      title: 'ट्राइएज — ${patient.name}',
+      title: 'Triage — ${patient.name}',
       body: Column(
         children: [
           Container(
@@ -102,9 +102,9 @@ class _TriageScreenState extends State<TriageScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 14),
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.blue)),
+              decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.yellow)),
               child: Row(children: [
-                const Icon(Icons.local_hospital, color: AppColors.blue, size: 18),
+                const Icon(Icons.local_hospital, color: AppColors.yellow, size: 18),
                 const SizedBox(width: 8),
                 Expanded(child: Text(result.reason, style: const TextStyle(color: AppColors.head, fontSize: 12))),
               ]),
@@ -139,8 +139,7 @@ class _TriageScreenState extends State<TriageScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(o.labelHi, style: TextStyle(color: isSel ? AppColors.head : AppColors.head.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w700)),
-                          Text(o.labelEn, style: const TextStyle(color: AppColors.muted, fontSize: 10)),
+                          Text(o.labelEn, style: TextStyle(color: isSel ? AppColors.head : AppColors.head.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w700)),
                         ]),
                       ),
                       if (isSel) Icon(Icons.check_circle, size: 16, color: o.isRedFlag ? AppColors.red : AppColors.teal),
@@ -157,8 +156,8 @@ class _TriageScreenState extends State<TriageScreen> {
               Row(children: [
                 const Icon(Icons.volume_up, color: AppColors.muted, size: 16),
                 const SizedBox(width: 6),
-                const Expanded(child: Text('लक्षण पर लॉन्ग-प्रेस = हिंदी ऑडियो', style: TextStyle(color: AppColors.muted, fontSize: 11))),
-                Text('${selected.length} चुने गए', style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+                const Expanded(child: Text('Long press on a symptom to hear it read aloud', style: TextStyle(color: AppColors.muted, fontSize: 11))),
+                Text('${selected.length} selected', style: const TextStyle(color: AppColors.muted, fontSize: 11)),
               ]),
               const SizedBox(height: 10),
               SizedBox(
@@ -173,7 +172,7 @@ class _TriageScreenState extends State<TriageScreen> {
                   onPressed: () {
                     if (result.route == RouteDecision.selfCare) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('घर पर देखभाल — फॉलो-अप शेड्यूल करें (v1 में केवल सलाह)')),
+                        const SnackBar(content: Text('Home care — schedule follow-up (advice only in v1)')),
                       );
                       Navigator.pop(context);
                       return;
@@ -194,10 +193,10 @@ class _TriageScreenState extends State<TriageScreen> {
                   },
                   child: Text(
                     result.route == RouteDecision.redFlag
-                        ? 'रेड-फ्लैग — इमरजेंसी रेफरल बनाएं'
+                        ? 'Red-flag — create emergency referral'
                         : result.route == RouteDecision.phcVisit
-                            ? 'PHC रेफरल बनाएं'
-                            : 'आगे बढ़ें',
+                            ? 'Create PHC referral'
+                            : 'Continue',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),

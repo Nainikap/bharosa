@@ -6,7 +6,7 @@ import '../data/db.dart';
 import '../sync/sync_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
-import '../widgets/app_scaffold.dart';
+import '../utils/sms_sender.dart';
 import '../triage/triage_engine.dart';
 import 'package:another_telephony/telephony.dart';
 
@@ -18,10 +18,12 @@ class EmergencyScreen extends StatefulWidget {
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
   bool sending = false;
+  bool sent = false;
   String? statusMsg;
   final Telephony telephony = Telephony.instance;
 
   Future<void> _createAndAlert(Patient patient, TriageResult result) async {
+    if (sending || sent) return;
     setState(() {
       sending = true;
       statusMsg = null;
@@ -43,6 +45,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       'priority': Priority.redFlag,
       'symptoms': result.triggered,
       'route': 'red_flag',
+      'messageRecipient': AppConfig.gatewaySmsNumber,
+      'messageChannel': 'pending',
     };
 
     await db.into(db.promises).insert(
@@ -83,10 +87,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     if (online) {
       final r = await sync.drain();
       if (r.synced > 0) {
+        await _recordDelivery(db, id, description, 'Sent through data network');
         setState(() {
           sending = false;
-          statusMsg = '✓ डेटा नेटवर्क से अलर्ट भेजा गया — MO को पेज किया गया';
+          sent = true;
         });
+        _returnToDashboard('Alert sent via data network — MO paged');
         return;
       }
     }
@@ -97,26 +103,50 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       if (hasPerm) {
         final smsBody =
             'BHAROSA RED-FLAG: ${patient.name} (${patient.village}) code $code symptoms: ${result.triggered.join(', ')} — please acknowledge. ${DateTime.now().toIso8601String()}';
-        await telephony.sendSms(
-          to: AppConfig.gatewaySmsNumber,
+        final smsResult = await sendTrackedSms(
+          telephony: telephony,
+          recipient: AppConfig.gatewaySmsNumber,
           message: smsBody,
         );
+        await _recordDelivery(db, id, description, smsResult.detail);
         setState(() {
           sending = false;
-          statusMsg = '✓ GSM SMS भेजा गया (${AppConfig.gatewaySmsNumber}) — MO को पेज किया गया';
+          sent = true;
         });
+        _returnToDashboard(smsResult.detail);
+        return;
       } else {
+        await _recordDelivery(db, id, description, 'SMS permission was not granted');
         setState(() {
           sending = false;
-          statusMsg = 'SMS अनुमति नहीं — फिर भी प्रोटोकॉल: तुरंत सुविधा ले जाएं / 108 कॉल करें';
+          sent = true;
         });
+        _returnToDashboard('SMS not permitted — protocol: immediately take patient to facility / call 108');
+        return;
       }
     } catch (e) {
+      await _recordDelivery(db, id, description, 'SMS failed: $e');
       setState(() {
         sending = false;
-        statusMsg = 'SMS विफल ($e) — फिर भी प्रोटोकॉल: तुरंत सुविधा ले जाएं';
+        sent = true;
       });
+      _returnToDashboard('SMS failed ($e) — protocol: immediately take patient to facility');
+      return;
     }
+  }
+
+  void _returnToDashboard(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+  }
+
+  Future<void> _recordDelivery(AppDatabase db, String id,
+      Map<String, dynamic> description, String status) {
+    description['messageChannel'] = status;
+    return (db.update(db.promises)..where((t) => t.id.equals(id))).write(
+      PromisesCompanion(descriptionJson: drift.Value(jsonEncode(description))),
+    );
   }
 
   @override
@@ -127,7 +157,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A0A0F),
-      appBar: AppBar(backgroundColor: const Color(0xFF4A0A1A), foregroundColor: Colors.white, title: const Text('🚨 रेड-फ्लैग इमरजेंसी')),
+      appBar: AppBar(backgroundColor: const Color(0xFF4A0A1A), foregroundColor: Colors.white, title: const Text('Red-flag Emergency')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -139,10 +169,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(patient.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  Text(patient.name, style: const TextStyle(color: AppColors.head, fontWeight: FontWeight.w800, fontSize: 16)),
                   Text('${patient.village} · Household ${patient.householdId}', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                   const SizedBox(height: 4),
-                  Text('Triggers: ${result.triggered.join(', ')}', style: const TextStyle(color: AppColors.red, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text('Triggers: ${result.triggered.join(', ')}', style: const TextStyle(color: AppColors.head, fontSize: 11, fontWeight: FontWeight.w600)),
                 ]),
               ),
             ]),
@@ -152,24 +182,26 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
             child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('प्रोटोकॉल — यह ऐप पर निर्भर नहीं है', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black)),
+              Text('Emergency protocol', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black)),
               SizedBox(height: 6),
-              Text('1. मरीज को तुरंत नजदीकी सुविधा ले जाएं\n2. 108 पर कॉल करें\n3. परिवार को साथ रखें\n4. यह अलर्ट केवल सूचनात्मक है', style: TextStyle(color: Colors.black87, fontSize: 12)),
+              Text('1. Take patient to nearest facility immediately\n2. Call 108\n3. Keep family together\n4. This alert is informational only', style: TextStyle(color: Colors.black87, fontSize: 12)),
             ]),
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              icon: sending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.sms),
-              label: Text(sending ? 'भेजा जा रहा है...' : 'इमरजेंसी अलर्ट भेजें (GSM SMS)'),
+              icon: sending
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : (sent ? const Icon(Icons.check) : const Icon(Icons.sms)),
+              label: Text(sending ? 'Sending...' : (sent ? 'Alert Sent' : 'Send Emergency Alert (GSM SMS)')),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.red,
+                backgroundColor: sent ? AppColors.teal : AppColors.red,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: sending ? null : () => _createAndAlert(patient, result),
+              onPressed: (sending || sent) ? null : () => _createAndAlert(patient, result),
             ),
           ),
           if (statusMsg != null) ...[
@@ -181,15 +213,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             ),
           ],
           const SizedBox(height: 14),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(foregroundColor: AppColors.muted, side: const BorderSide(color: AppColors.line)),
-            onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
-            child: const Text('होम पर लौटें'),
-          ),
-          const SizedBox(height: 8),
-          const Text('नोट: डेटा न होने पर भी यह GSM SMS सीधे ब्लॉक-ऑफिस गेटवे फोन पर जाता है। ऑफलाइन बनाया गया वादा dual-clock से insta-lapse नहीं होता।',
+          const Text('If data is unavailable, SMS is sent to +91 9755760921.',
               style: TextStyle(color: AppColors.muted, fontSize: 10), textAlign: TextAlign.center),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.all(16),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(foregroundColor: AppColors.muted, side: const BorderSide(color: AppColors.line)),
+          onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
+          child: const Text('Return Home'),
+        ),
       ),
     );
   }

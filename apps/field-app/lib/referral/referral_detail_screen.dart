@@ -18,7 +18,7 @@ class ReferralDetailScreen extends StatelessWidget {
       builder: (context, snap) {
         final p = snap.data;
         if (p == null) {
-          return const AppScaffold(title: 'रेफरल विवरण', body: Center(child: CircularProgressIndicator()));
+          return const AppScaffold(title: 'Referral Details', body: Center(child: CircularProgressIndicator()));
         }
         final desc = _decode(p.descriptionJson);
         final code = desc['code'] ?? p.id;
@@ -39,10 +39,12 @@ class ReferralDetailScreen extends StatelessWidget {
                 ]),
               ),
               const SizedBox(height: 14),
-              _row('मरीज', desc['patientName'] ?? '-'),
-              _row('गाँव / Household', '${desc['village'] ?? ''} · ${desc['householdId'] ?? ''}'),
-              _row('सुविधा', desc['facility'] ?? p.toFacility ?? '-'),
-              _row('लक्षण', (desc['symptoms'] as List?)?.join(', ') ?? '-'),
+              _row('Patient', desc['patientName'] ?? '-'),
+              _row('Village / Household', '${desc['village'] ?? ''} · ${desc['householdId'] ?? ''}'),
+              _row('Facility', desc['facility'] ?? p.toFacility ?? '-'),
+              _row('Symptoms', (desc['symptoms'] as List?)?.join(', ') ?? '-'),
+              _row('Message recipient', desc['messageRecipient'] ?? 'Not recorded'),
+              _row('Message delivery', desc['messageChannel'] ?? 'Pending'),
               const Divider(color: AppColors.line, height: 24),
               _row('Created (device)', _fmt(p.createdAt)),
               _row('SLA start (server)', p.slaStart ?? 'pending sync — dual-clock V1'),
@@ -53,7 +55,7 @@ class ReferralDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.line)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Escalation ladder', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
+                  const Text('Escalation ladder', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   ...ladder.map((e) {
                     final m = e as Map<String, dynamic>;
@@ -63,8 +65,8 @@ class ReferralDetailScreen extends StatelessWidget {
                       child: Row(children: [
                         const Icon(Icons.person, size: 14, color: AppColors.muted),
                         const SizedBox(width: 6),
-                        Expanded(child: Text('${m['role']}', style: const TextStyle(color: AppColors.head, fontSize: 12))),
-                        Text(ack, style: TextStyle(color: m['ackAt'] != null ? AppColors.teal : AppColors.muted, fontSize: 11)),
+                        Expanded(child: Text('${m['role']}', style: const TextStyle(color: Colors.white, fontSize: 12))),
+                        Text(ack, style: const TextStyle(color: Colors.white, fontSize: 11)),
                       ]),
                     );
                   }),
@@ -75,7 +77,7 @@ class ReferralDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.line)),
                 child: const Text(
-                  'लैडर: ASHA → Block MO → District nodal. Miss पर संबंधित अधिकारी को SMS (mock) + HMAC deep-link भेजा जाता है।',
+                  'Escalation ladder: ASHA → Block MO → District nodal. Miss → related officer sent SMS (mock) + HMAC deep-link.',
                   style: TextStyle(color: AppColors.muted, fontSize: 11),
                 ),
               ),

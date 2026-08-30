@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -7,6 +8,7 @@ import '../data/db.dart';
 import '../sync/sync_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
+import '../utils/sms_sender.dart';
 import '../widgets/app_scaffold.dart';
 import '../triage/triage_engine.dart';
 
@@ -21,6 +23,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
   String facility = 'CHC Shivapur (14 km)';
   String priority = Priority.urgent;
   bool saving = false;
+  bool saved = false;
 
   final facilities = [
     'CHC Shivapur (14 km)',
@@ -45,7 +48,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
     if (result.route == RouteDecision.redFlag) priority = Priority.redFlag;
 
     return AppScaffold(
-      title: 'रेफरल बनाएं',
+      title: 'Create Referral',
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -77,12 +80,12 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
               const SizedBox(height: 10),
               SelectableText(code, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 2, color: Colors.black)),
               const SizedBox(height: 4),
-              const Text('यह कोड/QR सुविधा रजिस्ट्रेशन पर स्कैन होगा', style: TextStyle(color: Colors.black54, fontSize: 11)),
+              const Text('This code/QR will scan at registration', style: TextStyle(color: Colors.black54, fontSize: 11)),
               Text('Triage triggers: ${result.triggered.join(', ')}', style: const TextStyle(color: Colors.black54, fontSize: 10), textAlign: TextAlign.center),
             ]),
           ),
           const SizedBox(height: 14),
-          const Text('गंतव्य सुविधा', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
+          const Text('Destination facility', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -99,7 +102,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text('प्राथमिकता', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
+          const Text('Priority', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Wrap(spacing: 8, children: [
             ChoiceChip(label: const Text('Routine (7d)'), selected: priority == Priority.normal, onSelected: (_) => setState(() => priority = Priority.normal)),
@@ -108,12 +111,12 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
           ]),
           const SizedBox(height: 18),
           PrimaryButton(
-            label: saving ? 'सेव हो रहा है...' : 'रेफरल सेव करें (ऑफलाइन भी)',
-            icon: Icons.save,
-            onPressed: saving ? null : () => _save(patient, result),
+            label: saving ? 'Sending...' : (saved ? 'Referral Sent' : 'Send referral message'),
+            icon: Icons.send,
+            onPressed: (saving || saved) ? null : () => _save(patient, result),
           ),
           const SizedBox(height: 8),
-          const Text('ऑफलाइन बनाया गया रेफरल कनेक्टिविटी लौटते ही अपने आप सिंक होगा — dual-clock (V1) से insta-lapse नहीं होगा।',
+          const Text('Sends through the data network first. If it is unavailable, sends an SMS to +91 9755760921.',
               style: TextStyle(color: AppColors.muted, fontSize: 11), textAlign: TextAlign.center),
         ],
       ),
@@ -121,6 +124,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
   }
 
   Future<void> _save(Patient patient, TriageResult result) async {
+    if (saving || saved) return;
     setState(() => saving = true);
     final db = Provider.of<AppDatabase>(context, listen: false);
     final sync = Provider.of<SyncService>(context, listen: false);
@@ -138,6 +142,8 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       'priority': priority,
       'symptoms': result.triggered,
       'route': result.route.toString(),
+      'messageRecipient': AppConfig.gatewaySmsNumber,
+      'messageChannel': 'pending',
     };
 
     final ladder = [
@@ -178,21 +184,56 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       priority: priority == Priority.redFlag ? 'emergency' : 'referral',
     );
 
-    // Try immediate sync if online
-    final r = await sync.drain();
+    // Send through the data network first. SMS is used only when it is unavailable.
+    String messageStatus;
+    final online = await sync.hasConnectivity();
+    if (online) {
+      final r = await sync.drain();
+      if (r.synced > 0) {
+        messageStatus = 'Sent through data network';
+      } else {
+        messageStatus = await _sendSmsFallback(patient, result);
+      }
+    } else {
+      messageStatus = await _sendSmsFallback(patient, result);
+    }
+
+    description['messageChannel'] = messageStatus;
+    await (db.update(db.promises)..where((t) => t.id.equals(id))).write(
+      PromisesCompanion(descriptionJson: drift.Value(jsonEncode(description))),
+    );
 
     if (mounted) {
+      setState(() {
+        saving = false;
+        saved = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(r.offline
-              ? 'ऑफलाइन सेव — नेटवर्क आते ही सिंक होगा'
-              : r.synced > 0
-                  ? 'सिंक हो गया — सुविधा पर स्कैन के लिए तैयार'
-                  : 'सेव हो गया — ऑफलाइन कतार में'),
+          content: Text(messageStatus),
           backgroundColor: AppColors.teal,
         ),
       );
-      Navigator.pushReplacementNamed(context, '/referralDetail', arguments: id);
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+    }
+  }
+
+  Future<String> _sendSmsFallback(Patient patient, TriageResult result) async {
+    try {
+      final telephony = Telephony.instance;
+      final permitted = await telephony.requestPhoneAndSmsPermissions ?? false;
+      if (!permitted) {
+        return 'SMS permission was not granted. Referral is saved for sync.';
+      }
+      final smsResult = await sendTrackedSms(
+        telephony: telephony,
+        recipient: AppConfig.gatewaySmsNumber,
+        message: 'BHAROSA REFERRAL: ${patient.name}, ${patient.village}; '
+            'facility: $facility; symptoms: ${result.triggered.join(', ')}; code: $code.',
+      );
+      return smsResult.detail;
+    } catch (error) {
+      return 'SMS could not be submitted to ${AppConfig.gatewaySmsNumber}: $error. Referral is saved for sync.';
     }
   }
 }
