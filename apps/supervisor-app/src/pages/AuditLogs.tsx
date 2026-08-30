@@ -11,6 +11,8 @@ import {
   Shield,
   FileText,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../api/client'
 import './AuditLogs.css'
 
 interface AuditEntry {
@@ -26,7 +28,26 @@ interface AuditEntry {
   status: 'success' | 'warning'
 }
 
-const auditLogs: AuditEntry[] = []
+const mapEventToAudit = (e: any): AuditEntry => {
+  const d = new Date(e.ts);
+  let actionType: AuditEntry['actionType'] = 'update';
+  if (e.event_name === 'PROMISE_CREATED') actionType = 'create';
+  if (e.event_name === 'PROMISE_ESCALATED' || e.event_name === 'PROMISE_LAPSED') actionType = 'escalation';
+  if (e.event_name === 'PROMISE_FULFILLED') actionType = 'arrival';
+  
+  return {
+    id: e.id,
+    timestamp: d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    actor: e.actor,
+    actorRole: 'System/User',
+    action: e.event_name,
+    actionType,
+    entity: e.promise_type || 'Promise',
+    entityId: e.promise_id.substring(0, 8),
+    details: `${e.from_status} → ${e.to_status}`,
+    status: actionType === 'escalation' ? 'warning' : 'success',
+  };
+};
 
 function getActionIcon(type: string) {
   switch (type) {
@@ -51,8 +72,18 @@ function getActionColor(type: string) {
 export default function AuditLogs() {
   const [searchQuery, setSearchQuery] = useState('')
 
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const res = await apiClient.get('/events');
+      return res.data.data;
+    },
+  });
+
+  const auditLogs = events.map(mapEventToAudit);
+
   const handleExportCsv = () => {
-    const csv = ['timestamp,actor,actorRole,action,entity,entityId,status', ...auditLogs.map((log) => [
+    const csv = ['timestamp,actor,actorRole,action,entity,entityId,status', ...auditLogs.map((log: AuditEntry) => [
       log.timestamp,
       log.actor,
       log.actorRole,
@@ -112,7 +143,7 @@ export default function AuditLogs() {
 
       {/* Timeline */}
       <div className="audit-timeline stagger">
-        {auditLogs.map((log) => (
+        {auditLogs.map((log: AuditEntry) => (
           <div key={log.id} className="audit-entry animate-fadeInUp">
             <div className="timeline-connector">
               <div

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ScanBarcode, Camera, ArrowRight, User, Clock } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import './FacilityArrival.css'
 
@@ -10,9 +11,24 @@ interface RecentCapture {
 }
 
 export default function FacilityArrival() {
+  const queryClient = useQueryClient()
   const [referralCode, setReferralCode] = useState('')
   const [isFocused, setIsFocused] = useState(false)
-  const [recentCaptures, setRecentCaptures] = useState<RecentCapture[]>([])
+
+  const { data: recentCaptures = [] } = useQuery({
+    queryKey: ['captures'],
+    queryFn: async () => {
+      const res = await apiClient.get('/capture');
+      return res.data.data.map((c: any) => {
+        const d = new Date(c.ts);
+        return {
+          refCode: c.id.substring(0, 8),
+          name: c.patient_name || 'Captured Patient',
+          time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+      });
+    },
+  });
 
   const handleScan = (source: string) => {
     setReferralCode((current) => current || 'REF-2024-891A')
@@ -37,13 +53,8 @@ export default function FacilityArrival() {
         },
       })
 
-      const nextCapture = {
-        refCode: promiseId,
-        name: 'Captured Patient',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }
-
-      setRecentCaptures((current) => [nextCapture, ...current].slice(0, 5))
+      setReferralCode('')
+      queryClient.invalidateQueries({ queryKey: ['captures'] })
     } catch (error: any) {
       console.error('Capture arrival failed', error.response?.data || error.message)
     }
@@ -102,7 +113,7 @@ export default function FacilityArrival() {
       <div className="recent-section animate-fadeInUp" style={{ animationDelay: '200ms' }}>
         <h3 className="section-label">RECENTLY CAPTURED</h3>
         <div className="recent-list stagger">
-          {recentCaptures.map((capture) => (
+          {recentCaptures.map((capture: RecentCapture) => (
             <div key={capture.refCode} className="recent-item animate-fadeInUp">
               <div className="recent-icon">
                 <User size={16} />

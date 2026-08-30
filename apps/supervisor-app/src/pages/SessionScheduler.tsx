@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Users,
 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import './SessionScheduler.css'
 
@@ -20,9 +21,24 @@ const MONTH_DAYS = [
   [27, 28, 29, 30, 31, 0, 0],
 ]
 
-const dotDays: Record<number, string> = {
-  2: 'planned', 10: 'planned', 14: 'completed', 15: 'completed',
-  22: 'stock-alert', 25: 'planned', 28: 'planned',
+const mapPromiseToSession = (p: any): ScheduledSession => {
+  const d = new Date(p.deadline || p.createdAt);
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const endTime = new Date(d.getTime() + 4 * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const ashaName = p.committedBy?.workerId || 'Worker';
+
+  return {
+    id: p.id,
+    dateDay: d.getDate(),
+    time,
+    endTime,
+    location: p.description?.villageName || 'Village Center',
+    village: p.description?.villageName || 'Unknown Village',
+    ashaName,
+    ashaInitials: ashaName.substring(0, 2).toUpperCase(),
+    ashaColor: '#8e24aa',
+    stockStatus: p.status === 'open' ? 'pending' : 'committed',
+  };
 }
 
 interface ScheduledSession {
@@ -34,14 +50,31 @@ interface ScheduledSession {
   ashaInitials: string
   ashaColor: string
   stockStatus: 'committed' | 'pending'
+  id: string
+  dateDay: number
 }
 
-const sessions: ScheduledSession[] = []
-
 export default function SessionScheduler() {
+  const queryClient = useQueryClient()
   const [selectedDay, setSelectedDay] = useState(10)
   const [villageFilter, setVillageFilter] = useState('all')
   const [workerFilter, setWorkerFilter] = useState('all')
+
+  const { data: promises = [] } = useQuery({
+    queryKey: ['promises', 'vaccine_supply'],
+    queryFn: async () => {
+      const res = await apiClient.get('/promises?type=vaccine_supply');
+      return res.data.data;
+    },
+  });
+
+  const allSessions = promises.map(mapPromiseToSession);
+  const sessions = allSessions.filter((s: any) => s.dateDay === selectedDay);
+
+  const dotDays: Record<number, string> = {};
+  allSessions.forEach((s: any) => {
+    dotDays[s.dateDay] = s.stockStatus === 'committed' ? 'completed' : 'planned';
+  });
 
   const handleExportSchedule = () => {
     const blob = new Blob([JSON.stringify({ selectedDay, villageFilter, workerFilter, sessions }, null, 2)], {
@@ -68,6 +101,7 @@ export default function SessionScheduler() {
           facilityId: 'fac-1',
         }],
       })
+      queryClient.invalidateQueries({ queryKey: ['promises', 'vaccine_supply'] })
       console.log('Session plan created for', sessionDate)
     } catch (error: any) {
       console.error('Create session failed', error.response?.data || error.message)
@@ -210,7 +244,7 @@ export default function SessionScheduler() {
                   </tr>
                 </thead>
                 <tbody className="stagger">
-                  {sessions.map((session, idx) => (
+                  {sessions.map((session: ScheduledSession, idx: number) => (
                     <tr key={idx} className="session-row animate-fadeInUp">
                       <td className="time-cell">
                         <span className="time-start">{session.time}</span>
