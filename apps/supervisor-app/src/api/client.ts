@@ -18,7 +18,7 @@ apiClient.interceptors.request.use(async (config) => {
       });
       accessToken = data.accessToken;
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err.response?.status === 401 || err.response?.status === 404) {
         // Register it
         const { data } = await axios.post(`${API_BASE}/auth/device/register`, {
           deviceId: 'dev-supervisor-123',
