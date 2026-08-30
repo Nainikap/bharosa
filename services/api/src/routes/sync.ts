@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 export async function syncRoutes(fastify: FastifyInstance) {
 
-  // ─── POST /sync/push ─────────────────────────────────────────
+  // --- POST /sync/push --------------------------------------
   // Upload device journal ops (priority-ordered)
   fastify.post('/push', {
     preHandler: [fastify.authenticate],
@@ -27,7 +27,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
     const serverSeq = parseInt(cursorRows[0].last_seq, 10);
     if (lastSeq < serverSeq) {
       return reply.status(409).send({
-        error: 'Sequence conflict — replay needed',
+        error: 'Sequence conflict - replay needed',
         serverSeq,
       });
     }
@@ -36,7 +36,6 @@ export async function syncRoutes(fastify: FastifyInstance) {
     try {
       await client.query('BEGIN');
 
-      // Sort ops by priority before processing
       const priorityOrder: Record<string, number> = {
         emergency: 0, referral: 1, consult: 2, followup: 3, analytics: 4,
       };
@@ -45,13 +44,11 @@ export async function syncRoutes(fastify: FastifyInstance) {
       );
 
       for (const op of sortedOps) {
-        // Insert into sync_journal (server-side log)
         await client.query(`
           INSERT INTO sync_journal (table_name, op, row_id, data, device_id, priority)
           VALUES ($1, $2, $3, $4, $5, $6)
         `, [op.table, op.op, op.rowId, JSON.stringify(op.data), user.deviceId, op.priority || 'analytics']);
 
-        // Apply the op to the actual tables
         if (op.table === 'promise' && op.op === 'insert') {
           const d = op.data;
           await client.query(`
@@ -65,12 +62,10 @@ export async function syncRoutes(fastify: FastifyInstance) {
             d.independence || null,
           ]);
 
-          // Stamp sla_start on server receipt (V1 — dual-clock)
           await client.query(`
             UPDATE promise SET sla_start = NOW() WHERE id = $1 AND sla_start IS NULL
           `, [op.rowId]);
 
-          // Compute deadline from evidence_timeout table
           const { rows: timeoutRows } = await client.query(`
             SELECT timeout_ms FROM evidence_timeout
             WHERE type = $1 AND subtype = COALESCE($2, 'default')
@@ -87,7 +82,6 @@ export async function syncRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Update sync cursor
       const { rows: newSeqRows } = await client.query(
         "SELECT currval('global_sync_seq') AS seq"
       );
@@ -110,8 +104,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // ─── GET /sync/pull?since=seq ────────────────────────────────
-  // Download caseload deltas
+  // --- GET /sync/pull?since=seq -----------------------------
   fastify.get('/pull', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -119,7 +112,6 @@ export async function syncRoutes(fastify: FastifyInstance) {
     const { since } = request.query as any;
     const sinceSeq = parseInt(since || '0', 10);
 
-    // Only return changes relevant to the device's caseload
     const { rows: deltas } = await fastify.pg.query(`
       SELECT seq, table_name, op, row_id, data, priority, ts
       FROM sync_journal
@@ -154,8 +146,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
     };
   });
 
-  // ─── GET /sync/health ────────────────────────────────────────
-  // Per-device lag metric
+  // --- GET /sync/health -------------------------------------
   fastify.get('/health', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest) => {

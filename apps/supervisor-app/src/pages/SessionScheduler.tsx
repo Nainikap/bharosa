@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Users,
 } from 'lucide-react'
+import { apiClient } from '../api/client'
 import './SessionScheduler.css'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -42,6 +43,37 @@ export default function SessionScheduler() {
   const [villageFilter, setVillageFilter] = useState('all')
   const [workerFilter, setWorkerFilter] = useState('all')
 
+  const handleExportSchedule = () => {
+    const blob = new Blob([JSON.stringify({ selectedDay, villageFilter, workerFilter, sessions }, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'bharosa-session-schedule.json'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleCreateSession = async () => {
+    const sessionDate = `2024-10-${String(selectedDay).padStart(2, '0')}`
+
+    try {
+      await apiClient.post('/sessions/plan', {
+        sessions: [{
+          sessionDate,
+          sessionType: 'ri',
+          vaccines: [{ name: 'OPV', quantity: 120 }, { name: 'DPT', quantity: 90 }],
+          villageName: 'Rampur Village',
+          facilityId: 'fac-1',
+        }],
+      })
+      console.log('Session plan created for', sessionDate)
+    } catch (error: any) {
+      console.error('Create session failed', error.response?.data || error.message)
+    }
+  }
+
   return (
     <div className="scheduler-page animate-fadeInUp">
       <div className="scheduler-header">
@@ -54,11 +86,11 @@ export default function SessionScheduler() {
           </p>
         </div>
         <div className="scheduler-header-actions">
-          <button className="btn btn-outline">
+          <button className="btn btn-outline" onClick={handleExportSchedule}>
             <Download size={16} />
             <span>Export Schedule</span>
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={handleCreateSession}>
             <Plus size={16} />
             <span>New Session</span>
           </button>
@@ -72,8 +104,8 @@ export default function SessionScheduler() {
             <div className="calendar-header">
               <h3>October 2024</h3>
               <div className="calendar-nav">
-                <button className="cal-nav-btn"><ChevronLeft size={16} /></button>
-                <button className="cal-nav-btn"><ChevronRight size={16} /></button>
+                <button className="cal-nav-btn" onClick={() => setSelectedDay((current) => Math.max(1, current - 1))}><ChevronLeft size={16} /></button>
+                <button className="cal-nav-btn" onClick={() => setSelectedDay((current) => Math.min(31, current + 1))}><ChevronRight size={16} /></button>
               </div>
             </div>
 
@@ -209,7 +241,7 @@ export default function SessionScheduler() {
                         )}
                       </td>
                       <td>
-                        <button className="btn btn-sm btn-outline">
+                        <button className="btn btn-sm btn-outline" onClick={() => console.log('View session', session)}>
                           <Users size={14} />
                           View
                         </button>

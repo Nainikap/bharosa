@@ -14,7 +14,7 @@ import {
   Send,
   Clock,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import './ActivePromises.css'
 
@@ -81,7 +81,14 @@ function getServiceIcon(type: string) {
 }
 
 export default function ActivePromises() {
-  const [_filter, setFilter] = useState('all')
+  const queryClient = useQueryClient()
+  const [filter, setFilter] = useState('all')
+  const [showCreate, setShowCreate] = useState(false)
+  const [newPromise, setNewPromise] = useState({
+    name: '',
+    service: 'referral',
+    deadline: '',
+  })
 
   const { data: promises = [], isLoading } = useQuery({
     queryKey: ['promises'],
@@ -91,11 +98,43 @@ export default function ActivePromises() {
     },
   });
 
+  const handleCreatePromise = async () => {
+    if (!newPromise.name.trim()) return
+
+    const payload = {
+      type: newPromise.service,
+      committedTo: {
+        role: 'facility',
+        facilityId: 'fac-1',
+        workerId: 'worker-sup-1',
+      },
+      description: {
+        name: newPromise.name,
+        priority: newPromise.service === 'referral' ? 'routine' : 'normal',
+        deadline: newPromise.deadline || undefined,
+      },
+      independence: 'direct',
+    }
+
+    try {
+      await apiClient.post('/promises', payload)
+      setShowCreate(false)
+      setNewPromise({ name: '', service: 'referral', deadline: '' })
+      queryClient.invalidateQueries({ queryKey: ['promises'] })
+    } catch (error: any) {
+      console.error('Create promise failed', error.response?.data || error.message)
+    }
+  }
+
   if (isLoading) return <div>Loading...</div>;
 
-  const scheduledCards = promises.filter((p: any) => p.status === 'open').map(mapPromiseToCard);
-  const overdueCards = promises.filter((p: any) => p.status === 'escalated' || p.status === 'lapsed').map(mapPromiseToCard);
-  const completedCards = promises.filter((p: any) => p.status === 'kept').map(mapPromiseToCard);
+  const filteredPromises = filter === 'all'
+    ? promises
+    : promises.filter((p: any) => p.type === filter)
+
+  const scheduledCards = filteredPromises.filter((p: any) => p.status === 'open').map(mapPromiseToCard);
+  const overdueCards = filteredPromises.filter((p: any) => p.status === 'escalated' || p.status === 'lapsed').map(mapPromiseToCard);
+  const completedCards = filteredPromises.filter((p: any) => p.status === 'kept').map(mapPromiseToCard);
 
   return (
     <div className="promises-page animate-fadeInUp">
@@ -109,16 +148,51 @@ export default function ActivePromises() {
           </p>
         </div>
         <div className="promises-header-actions">
-          <button className="btn btn-outline" onClick={() => setFilter('all')}>
+          <button className="btn btn-outline" onClick={() => setFilter((current) => current === 'all' ? 'referral' : 'all')}>
             <Filter size={16} />
             <span>Filter Services</span>
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             <Plus size={16} />
             <span>New Promise</span>
           </button>
         </div>
       </div>
+
+      {showCreate && (
+        <div className="floating-card" style={{ padding: '1rem', marginBottom: '1rem', maxWidth: 480 }}>
+          <h3 style={{ marginBottom: '1rem' }}>Create Promise</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <input
+              type="text"
+              value={newPromise.name}
+              onChange={(e) => setNewPromise((current) => ({ ...current, name: e.target.value }))}
+              placeholder="Patient / promise name"
+              style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid #dfe3ea' }}
+            />
+            <select
+              value={newPromise.service}
+              onChange={(e) => setNewPromise((current) => ({ ...current, service: e.target.value }))}
+              style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid #dfe3ea' }}
+            >
+              <option value="referral">Referral</option>
+              <option value="consult">Consult</option>
+              <option value="followup">Follow-up</option>
+              <option value="vaccine_supply">Vaccine Supply</option>
+            </select>
+            <input
+              type="date"
+              value={newPromise.deadline}
+              onChange={(e) => setNewPromise((current) => ({ ...current, deadline: e.target.value }))}
+              style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid #dfe3ea' }}
+            />
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={() => setShowCreate(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleCreatePromise}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kanban board */}
       <div className="kanban-board">
@@ -130,14 +204,14 @@ export default function ActivePromises() {
               <h3>Scheduled</h3>
               <span className="column-count">{scheduledCards.length}</span>
             </div>
-            <button className="column-menu"><MoreHorizontal size={16} /></button>
+            <button className="column-menu" onClick={() => console.log('Scheduled menu clicked')}><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
             {scheduledCards.map((card: PromiseCard) => (
               <div key={card.id} className="promise-card floating-card animate-fadeInUp">
                 <div className="card-top-row">
                   <span className="ref-badge">{card.refCode}</span>
-                  <button className="card-grip"><GripVertical size={14} /></button>
+                  <button className="card-grip" onClick={() => console.log('Card grip clicked', card.id)}><GripVertical size={14} /></button>
                 </div>
                 <h4 className="card-name">{card.name}</h4>
                 <p className="card-service">
@@ -166,7 +240,7 @@ export default function ActivePromises() {
               <h3 className="overdue-title">Overdue</h3>
               <span className="column-count overdue-count">{overdueCards.length}</span>
             </div>
-            <button className="column-menu"><MoreHorizontal size={16} /></button>
+            <button className="column-menu" onClick={() => console.log('Overdue menu clicked')}><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
             {overdueCards.map((card: PromiseCard) => (
@@ -176,7 +250,7 @@ export default function ActivePromises() {
                 )}
                 <div className="card-top-row">
                   <span className="ref-badge overdue-ref">{card.refCode}</span>
-                  <button className="card-grip"><GripVertical size={14} /></button>
+                  <button className="card-grip" onClick={() => console.log('Overdue card grip clicked', card.id)}><GripVertical size={14} /></button>
                 </div>
                 <h4 className="card-name">{card.name}</h4>
                 <p className="card-service">
@@ -197,13 +271,13 @@ export default function ActivePromises() {
                     </span>
                   )}
                   {card.overdueDays && (
-                    <button className="action-tag call">
+                    <button className="action-tag call" onClick={() => console.log('Call ASHA', card.id)}>
                       <Phone size={12} />
                       Call ASHA
                     </button>
                   )}
                   {card.missedDate && (
-                    <button className="action-tag escalate">
+                    <button className="action-tag escalate" onClick={() => console.log('Escalate', card.id)}>
                       <Send size={12} />
                       Escalate
                     </button>
@@ -221,14 +295,14 @@ export default function ActivePromises() {
               <span className="column-dot completed" />
               <h3>Completed</h3>
             </div>
-            <button className="column-menu"><MoreHorizontal size={16} /></button>
+            <button className="column-menu" onClick={() => console.log('Completed menu clicked')}><MoreHorizontal size={16} /></button>
           </div>
           <div className="column-cards stagger">
             {completedCards.map((card: PromiseCard) => (
               <div key={card.id} className="promise-card floating-card completed-card animate-fadeInUp">
                 <div className="card-top-row">
                   <span className="ref-badge">{card.refCode}</span>
-                  <button className="card-grip"><GripVertical size={14} /></button>
+                  <button className="card-grip" onClick={() => console.log('Completed card grip clicked', card.id)}><GripVertical size={14} /></button>
                 </div>
                 <h4 className="card-name">{card.name}</h4>
                 <p className="card-service">

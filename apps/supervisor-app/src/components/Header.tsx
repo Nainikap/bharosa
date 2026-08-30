@@ -18,12 +18,12 @@ export default function Header() {
           />
         </div>
 
-        <button className="header-icon-btn" aria-label="Notifications">
+        <button className="header-icon-btn" aria-label="Notifications" onClick={() => console.log('Notifications opened')}>
           <Bell size={18} />
           <span className="notification-dot" />
         </button>
 
-        <button className="header-avatar" aria-label="User profile">
+        <button className="header-avatar" aria-label="User profile" onClick={() => console.log('User profile opened')}>
           <User size={18} />
         </button>
       </div>

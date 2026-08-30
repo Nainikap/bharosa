@@ -12,6 +12,18 @@ declare module 'fastify' {
 
 const SYSTEM_ACTOR = { role: 'system', workerId: 'scheduler' };
 
+async function ensureQueue(boss: PgBoss, queueName: string) {
+  try {
+    await boss.createQueue(queueName);
+  } catch (error: any) {
+    const message = String(error?.message ?? error);
+    const isDuplicate = /already exists|duplicate key|queue.*exists/i.test(message);
+    if (!isDuplicate && error?.code !== '23505') {
+      throw error;
+    }
+  }
+}
+
 async function schedulerPluginFn(fastify: FastifyInstance) {
   const boss = new PgBoss({
     connectionString: process.env.DATABASE_URL || 'postgres://bharosa:bharosa_dev@localhost:5432/bharosa',
@@ -22,15 +34,29 @@ async function schedulerPluginFn(fastify: FastifyInstance) {
   fastify.log.info('pg-boss scheduler started');
   fastify.decorate('boss', boss);
 
-  // ─── Evidence-timeout lapse detection (60s tick) ─────────────
-  await boss.schedule('promise-lapse-check', `*/${Math.round(SCHEDULER_TICK_MS / 1000)} seconds`, {}, {});
+  // ─── Initialize Queues ───────────────────────────────────────
+  // Required in pg-boss v9+ to satisfy database foreign keys.
+  // Guard against partial startup or stale state where the queue row is not present yet.
+  await ensureQueue(boss, 'promise-lapse-check');
+  await ensureQueue(boss, 'outbox-flush');
+
+  // ─── Evidence-timeout lapse detection ────────────────────────
+  // Convert SCHEDULER_TICK_MS to valid cron expression
+  const tickSeconds = Math.round(SCHEDULER_TICK_MS / 1000);
+  const lapseCron = tickSeconds < 60 
+    ? `*/${Math.max(1, tickSeconds)} * * * * *` // 6-part cron for sub-minute
+    : `*/${Math.max(1, Math.round(tickSeconds / 60))} * * * *`; // 5-part cron for minutes
+
+  await ensureQueue(boss, 'promise-lapse-check');
+  await boss.schedule('promise-lapse-check', lapseCron, {}, {});
 
   await boss.work('promise-lapse-check', async () => {
     await runLapseCheck(fastify);
   });
 
-  // ─── Outbox flush (sends pending notifications) ──────────────
-  await boss.schedule('outbox-flush', '*/60 seconds', {}, {});
+  // ─── Outbox flush (sends pending notifications every minute) ─
+  await ensureQueue(boss, 'outbox-flush');
+  await boss.schedule('outbox-flush', '* * * * *', {}, {});
   await boss.work('outbox-flush', async () => {
     await runOutboxFlush(fastify);
   });

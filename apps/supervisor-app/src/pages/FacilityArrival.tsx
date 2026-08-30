@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ScanBarcode, Camera, ArrowRight, User, Clock } from 'lucide-react'
+import { apiClient } from '../api/client'
 import './FacilityArrival.css'
 
 interface RecentCapture {
@@ -8,11 +9,45 @@ interface RecentCapture {
   time: string
 }
 
-const recentCaptures: RecentCapture[] = []
-
 export default function FacilityArrival() {
   const [referralCode, setReferralCode] = useState('')
   const [isFocused, setIsFocused] = useState(false)
+  const [recentCaptures, setRecentCaptures] = useState<RecentCapture[]>([])
+
+  const handleScan = (source: string) => {
+    setReferralCode((current) => current || 'REF-2024-891A')
+    console.log('Scan initiated from', source)
+  }
+
+  const handleCapture = async () => {
+    if (!referralCode.trim()) {
+      console.warn('Referral code is required before capture')
+      return
+    }
+
+    try {
+      const promiseId = referralCode.trim()
+      await apiClient.post(`/promises/${promiseId}/evidence`, {
+        kind: 'arrival',
+        source: 'manual_code',
+        confidence: 'verified',
+        metadata: {
+          facilityId: 'fac-1',
+          referralCode: promiseId,
+        },
+      })
+
+      const nextCapture = {
+        refCode: promiseId,
+        name: 'Captured Patient',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+
+      setRecentCaptures((current) => [nextCapture, ...current].slice(0, 5))
+    } catch (error: any) {
+      console.error('Capture arrival failed', error.response?.data || error.message)
+    }
+  }
 
   return (
     <div className="arrival-page animate-fadeInUp">
@@ -48,14 +83,14 @@ export default function FacilityArrival() {
 
           <div className="form-actions">
             <div className="scan-buttons">
-              <button className="scan-btn" aria-label="Scan barcode">
+              <button className="scan-btn" aria-label="Scan barcode" onClick={() => handleScan('barcode')}>
                 <ScanBarcode size={18} />
               </button>
-              <button className="scan-btn" aria-label="Scan with camera">
+              <button className="scan-btn" aria-label="Scan with camera" onClick={() => handleScan('camera')}>
                 <Camera size={18} />
               </button>
             </div>
-            <button className="btn btn-primary capture-btn">
+            <button className="btn btn-primary capture-btn" onClick={handleCapture}>
               <span>Verify & Capture</span>
               <ArrowRight size={16} />
             </button>
