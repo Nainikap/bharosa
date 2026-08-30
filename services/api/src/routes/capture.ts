@@ -19,7 +19,7 @@ export async function captureRoutes(fastify: FastifyInstance) {
     const validSources = ['registration_match', 'manual_code', 'batch_entry'];
     const captureSource = validSources.includes(source) ? source : 'manual_code';
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       "SELECT * FROM promise WHERE id = $1 AND type = 'referral'", [promiseId]
     );
     if (rows.length === 0) {
@@ -42,7 +42,7 @@ export async function captureRoutes(fastify: FastifyInstance) {
     const newStatus = promise.status === 'escalated' ? 'kept' : 'kept'; // kept (or kept_late if escalated)
     const eventName = promise.status === 'escalated' ? 'promise.kept_late' : 'promise.kept';
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -98,7 +98,7 @@ export async function captureRoutes(fastify: FastifyInstance) {
     }
 
     // Fuzzy search: find open referral promises matching patient name+village
-    const { rows } = await fastify.pg.query(`
+    const { rows } = await fastify.db.query(`
       SELECT p.id, p.status, rd.patient_id, pat.name, pat.village
       FROM promise p
       JOIN referral_detail rd ON rd.promise_id = p.id

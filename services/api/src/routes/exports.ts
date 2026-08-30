@@ -14,7 +14,7 @@ export async function exportRoutes(fastify: FastifyInstance) {
     }
 
     // Fetch patients + their referral/encounter data for the catchment
-    const { rows } = await fastify.pg.query(`
+    const { rows } = await fastify.db.query(`
       SELECT
         pat.local_id, pat.name, pat.fuzzy_dob, pat.village, pat.gender,
         h.catchment_assignment,
@@ -72,7 +72,7 @@ export async function exportRoutes(fastify: FastifyInstance) {
 
     query += ' ORDER BY p.created_at, pe.ts';
 
-    const { rows } = await fastify.pg.query(query, params);
+    const { rows } = await fastify.db.query(query, params);
 
     // Convert to NDJSON (one JSON per line)
     const ndjson = rows.map(row => JSON.stringify({

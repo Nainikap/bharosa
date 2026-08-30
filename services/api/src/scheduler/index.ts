@@ -1,68 +1,34 @@
 import fp from 'fastify-plugin';
-import PgBoss from 'pg-boss';
 import { FastifyInstance } from 'fastify';
 import { lapse, escalate } from '@bharosa/shared-contracts';
 import { SCHEDULER_TICK_MS } from '@bharosa/shared-contracts';
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    boss: PgBoss;
-  }
-}
-
 const SYSTEM_ACTOR = { role: 'system', workerId: 'scheduler' };
 
-async function ensureQueue(boss: PgBoss, queueName: string) {
-  try {
-    await boss.createQueue(queueName);
-  } catch (error: any) {
-    const message = String(error?.message ?? error);
-    const isDuplicate = /already exists|duplicate key|queue.*exists/i.test(message);
-    if (!isDuplicate && error?.code !== '23505') {
-      throw error;
-    }
-  }
-}
-
 async function schedulerPluginFn(fastify: FastifyInstance) {
-  const boss = new PgBoss({
-    connectionString: process.env.DATABASE_URL || 'postgres://bharosa:bharosa_dev@localhost:5432/bharosa',
-    monitorStateIntervalSeconds: 30,
-  });
-
-  await boss.start();
-  fastify.log.info('pg-boss scheduler started');
-  fastify.decorate('boss', boss);
-
-  // ─── Initialize Queues ───────────────────────────────────────
-  // Required in pg-boss v9+ to satisfy database foreign keys.
-  // Guard against partial startup or stale state where the queue row is not present yet.
-  await ensureQueue(boss, 'promise-lapse-check');
-  await ensureQueue(boss, 'outbox-flush');
+  fastify.log.info('In-memory scheduler started');
 
   // ─── Evidence-timeout lapse detection ────────────────────────
-  // Convert SCHEDULER_TICK_MS to valid cron expression
-  const tickSeconds = Math.round(SCHEDULER_TICK_MS / 1000);
-  const lapseCron = tickSeconds < 60 
-    ? `*/${Math.max(1, tickSeconds)} * * * * *` // 6-part cron for sub-minute
-    : `*/${Math.max(1, Math.round(tickSeconds / 60))} * * * *`; // 5-part cron for minutes
-
-  await ensureQueue(boss, 'promise-lapse-check');
-  await boss.schedule('promise-lapse-check', lapseCron, {}, {});
-
-  await boss.work('promise-lapse-check', async () => {
-    await runLapseCheck(fastify);
-  });
+  const lapseInterval = setInterval(async () => {
+    try {
+      await runLapseCheck(fastify);
+    } catch (err) {
+      fastify.log.error({ err }, 'Error in runLapseCheck');
+    }
+  }, SCHEDULER_TICK_MS || 60000);
 
   // ─── Outbox flush (sends pending notifications every minute) ─
-  await ensureQueue(boss, 'outbox-flush');
-  await boss.schedule('outbox-flush', '* * * * *', {}, {});
-  await boss.work('outbox-flush', async () => {
-    await runOutboxFlush(fastify);
-  });
+  const outboxInterval = setInterval(async () => {
+    try {
+      await runOutboxFlush(fastify);
+    } catch (err) {
+      fastify.log.error({ err }, 'Error in runOutboxFlush');
+    }
+  }, 60000);
 
   fastify.addHook('onClose', async () => {
-    await boss.stop();
+    clearInterval(lapseInterval);
+    clearInterval(outboxInterval);
   });
 }
 
@@ -71,14 +37,14 @@ async function schedulerPluginFn(fastify: FastifyInstance) {
  * Idempotent: reads current status, never double-transitions.
  */
 async function runLapseCheck(fastify: FastifyInstance) {
-  const { rows: overdue } = await fastify.pg.query(`
+  const { rows: overdue } = await fastify.db.query(`
     SELECT p.id, p.type, p.status, p.sla_start, p.deadline, p.version,
            p.committed_by, p.committed_to, p.description, p.evidence,
            p.independence, p.ladder, p.created_at
     FROM promise p
     WHERE p.status = 'open'
       AND p.deadline IS NOT NULL
-      AND p.deadline < NOW()
+      AND p.deadline < datetime('now')
   `);
 
   for (const row of overdue) {
@@ -94,7 +60,7 @@ async function runLapseCheck(fastify: FastifyInstance) {
     if (!escResult.ok) continue;
 
     // Apply both transitions atomically
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -140,7 +106,8 @@ async function runLapseCheck(fastify: FastifyInstance) {
       const ladder = escResult.updatedFields.ladder || [];
       if (ladder.length > 0) {
         const firstRung = ladder[0];
-        const hmacToken = fastify.generateHmac(promise.id);
+        // @ts-ignore
+        const hmacToken = fastify.generateHmac ? fastify.generateHmac(promise.id) : '';
         await client.query(`
           INSERT INTO outbox (id, recipient_role, recipient_id, channel, subject, body, hmac_token)
           VALUES (gen_random_uuid(), $1, $2, 'sms', $3, $4, $5)
@@ -181,7 +148,7 @@ async function runLapseCheck(fastify: FastifyInstance) {
 async function runOutboxFlush(fastify: FastifyInstance) {
   const provider = process.env.SMS_PROVIDER || 'mock';
 
-  const { rows } = await fastify.pg.query(`
+  const { rows } = await fastify.db.query(`
     SELECT * FROM outbox WHERE status = 'pending' ORDER BY created_at ASC LIMIT 50
   `);
 
@@ -194,8 +161,8 @@ async function runOutboxFlush(fastify: FastifyInstance) {
         subject: msg.subject,
       }, '[MockSMS] Notification sent');
 
-      await fastify.pg.query(`
-        UPDATE outbox SET status = 'sent', sent_at = NOW() WHERE id = $1
+      await fastify.db.query(`
+        UPDATE outbox SET status = 'sent', sent_at = datetime('now') WHERE id = $1
       `, [msg.id]);
     }
     // DLT provider would go here in production
@@ -209,16 +176,16 @@ function rowToPromise(row: any) {
   return {
     id: row.id,
     type: row.type,
-    committedBy: row.committed_by,
-    committedTo: row.committed_to,
-    description: row.description || {},
+    committedBy: typeof row.committed_by === 'string' ? JSON.parse(row.committed_by) : row.committed_by,
+    committedTo: typeof row.committed_to === 'string' ? JSON.parse(row.committed_to) : row.committed_to,
+    description: typeof row.description === 'string' ? JSON.parse(row.description) : (row.description || {}),
     createdAt: row.created_at,
     slaStart: row.sla_start,
     deadline: row.deadline,
-    evidence: row.evidence,
+    evidence: typeof row.evidence === 'string' ? JSON.parse(row.evidence) : row.evidence,
     independence: row.independence,
     status: row.status,
-    ladder: row.ladder || [],
+    ladder: typeof row.ladder === 'string' ? JSON.parse(row.ladder) : (row.ladder || []),
     version: row.version,
   };
 }

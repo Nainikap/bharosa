@@ -19,7 +19,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     const committedBy = { role: user.role, workerId: user.workerId, facilityId: user.facilityId };
     const createdPromises: any[] = [];
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -96,7 +96,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any;
     const user = request.user;
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       "SELECT * FROM promise WHERE id = $1 AND type = 'vaccine_supply'", [id]
     );
     if (rows.length === 0) {
@@ -104,11 +104,11 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     }
 
     // Upgrade independence: plan_seeded → direct
-    await fastify.pg.query(`
+    await fastify.db.query(`
       UPDATE promise SET independence = 'direct', version = version + 1 WHERE id = $1
     `, [id]);
 
-    await fastify.pg.query(`
+    await fastify.db.query(`
       INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
       VALUES (gen_random_uuid(), $1, 'promise.annotated', $2, $2, $3, $4)
     `, [id, rows[0].status, JSON.stringify({ role: user.role, workerId: user.workerId }),
@@ -126,7 +126,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { present } = request.body as any;
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       "SELECT * FROM promise WHERE id = $1 AND type = 'vaccine_supply'", [id]
     );
     if (rows.length === 0) {
@@ -145,11 +145,11 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         capturedAt: new Date(),
       };
 
-      await fastify.pg.query(`
+      await fastify.db.query(`
         UPDATE promise SET status = 'kept', evidence = $1, version = version + 1 WHERE id = $2
       `, [JSON.stringify(evidence), id]);
 
-      await fastify.pg.query(`
+      await fastify.db.query(`
         INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
         VALUES (gen_random_uuid(), $1, 'promise.kept', $2, 'kept', $3, $4)
       `, [id, promise.status, JSON.stringify(actor), JSON.stringify({ evidence })]);
@@ -157,11 +157,11 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       return { status: 'kept' };
     } else {
       // Vaccine absent → lapse immediately (don't wait for T+1d)
-      await fastify.pg.query(`
+      await fastify.db.query(`
         UPDATE promise SET status = 'lapsed', version = version + 1 WHERE id = $1
       `, [id]);
 
-      await fastify.pg.query(`
+      await fastify.db.query(`
         INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
         VALUES (gen_random_uuid(), $1, 'promise.lapsed', $2, 'lapsed', $3, $4)
       `, [id, promise.status, JSON.stringify(actor), JSON.stringify({ reason: 'absent_at_point_of_use' })]);

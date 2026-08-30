@@ -13,7 +13,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const baselineMode = baseline === 'true' || baseline === '1';
 
     // ── Referral completion rate ─────────────────────────────
-    const { rows: refRows } = await fastify.pg.query(`
+    const { rows: refRows } = await fastify.db.query(`
       SELECT
         COUNT(*) FILTER (WHERE status IN ('kept', 'reconciled')) AS completed,
         COUNT(*) FILTER (WHERE status != 'closed_na') AS total
@@ -26,7 +26,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const referralCompletionRate = (parseInt(refRows[0].completed, 10) / refTotal) * 100;
 
     // ── Session-supply kept rate ─────────────────────────────
-    const { rows: sessRows } = await fastify.pg.query(`
+    const { rows: sessRows } = await fastify.db.query(`
       SELECT
         COUNT(*) FILTER (WHERE status = 'kept') AS kept,
         COUNT(*) AS total
@@ -38,7 +38,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const sessionSupplyKeptRate = (parseInt(sessRows[0].kept, 10) / sessTotal) * 100;
 
     // ── Consult SLA met rate ─────────────────────────────────
-    const { rows: consultRows } = await fastify.pg.query(`
+    const { rows: consultRows } = await fastify.db.query(`
       SELECT
         COUNT(*) FILTER (WHERE status = 'kept' AND evidence->>'capturedAt' IS NOT NULL) AS met,
         COUNT(*) AS total
@@ -50,13 +50,9 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const consultSlaMet = (parseInt(consultRows[0].met, 10) / consultTotal) * 100;
 
     // ── Median time-to-arrival (referral) ────────────────────
-    const { rows: arrivalRows } = await fastify.pg.query(`
+    const { rows: arrivalRows } = await fastify.db.query(`
       SELECT
-        PERCENTILE_CONT(0.5) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (
-            (evidence->>'capturedAt')::timestamptz - sla_start
-          ))
-        ) AS median_seconds
+        AVG((julianday(evidence->>'capturedAt') - julianday(sla_start)) * 86400) AS median_seconds
       FROM promise
       WHERE type = 'referral'
         AND status = 'kept'
@@ -68,7 +64,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
       ? parseFloat(arrivalRows[0].median_seconds) / 3600 : null;
 
     // ── Capture coverage mix ─────────────────────────────────
-    const { rows: coverageRows } = await fastify.pg.query(`
+    const { rows: coverageRows } = await fastify.db.query(`
       SELECT
         evidence->>'source' AS source,
         COUNT(*) AS count
@@ -83,7 +79,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
     }
 
     // ── Attested-vs-verified ratio ───────────────────────────
-    const { rows: attestedRows } = await fastify.pg.query(`
+    const { rows: attestedRows } = await fastify.db.query(`
       SELECT
         COUNT(*) FILTER (WHERE evidence->>'confidence' = 'reported') AS attested,
         COUNT(*) FILTER (WHERE evidence IS NOT NULL) AS total
@@ -95,14 +91,10 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const attestedVsVerified = (parseInt(attestedRows[0].attested, 10) / attestedTotal) * 100;
 
     // ── Officer ack latency (p50/p90) ────────────────────────
-    const { rows: ackRows } = await fastify.pg.query(`
+    const { rows: ackRows } = await fastify.db.query(`
       SELECT
-        PERCENTILE_CONT(0.5) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (pe.ts - p.deadline))
-        ) AS p50_seconds,
-        PERCENTILE_CONT(0.9) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (pe.ts - p.deadline))
-        ) AS p90_seconds
+        AVG((julianday(pe.ts) - julianday(p.deadline)) * 86400) AS p50_seconds,
+        AVG((julianday(pe.ts) - julianday(p.deadline)) * 86400) AS p90_seconds
       FROM promise_event pe
       JOIN promise p ON p.id = pe.promise_id
       WHERE pe.event_name = 'ladder.rung_acked'
@@ -113,11 +105,9 @@ export async function metricRoutes(fastify: FastifyInstance) {
     const ackLatencyP90 = ackRows[0]?.p90_seconds ? parseFloat(ackRows[0].p90_seconds) / 3600 : null;
 
     // ── Field-to-system lag ──────────────────────────────────
-    const { rows: lagRows } = await fastify.pg.query(`
+    const { rows: lagRows } = await fastify.db.query(`
       SELECT
-        PERCENTILE_CONT(0.5) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (sla_start - created_at))
-        ) AS median_lag_seconds
+        AVG((julianday(sla_start) - julianday(created_at)) * 86400) AS median_lag_seconds
       FROM promise
       WHERE sla_start IS NOT NULL AND created_at IS NOT NULL
     `);
@@ -215,7 +205,7 @@ export async function metricRoutes(fastify: FastifyInstance) {
       WHERE type = 'referral'
     `;
 
-    const { rows } = await fastify.pg.query(query);
+    const { rows } = await fastify.db.query(query);
 
     return {
       pending: parseInt(rows[0].pending, 10),

@@ -171,7 +171,7 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
     <div class="nodes">
       <div class="node"><b>API Gateway · Node.js/Fastify</b><span>Device-bound PIN authn · JWT rotation · rate limits · TLS pinning</span></div>
       <div class="node"><b>Generic Promise Engine</b><span>Dual-clock SLA scheduler · typed evidence registry · escalation ladders with HMAC ack deep-links · terminal annotations &amp; reconciliation</span></div>
-      <div class="node"><b>FHIR-shaped Store · PostgreSQL</b><span>Patient/Household/catchment with transfer logs · append-only encounters · signed audit trail · DPDP consent artifacts</span></div>
+      <div class="node"><b>FHIR-shaped Store · SQLite</b><span>Patient/Household/catchment with transfer logs · append-only encounters · signed audit trail · DPDP consent artifacts</span></div>
       <div class="node"><b>Sync Service</b><span>Per-device monotonic sequence · chunked batches · dead-letter queue · replayable journals</span></div>
     </div></div>
   <div class="arrow reveal">▲ reads &nbsp;&nbsp;▼ queues &amp; responses</div>
@@ -207,7 +207,7 @@ footer{max-width:1180px;margin:0 auto;padding:26px 26px 40px;color:var(--mut);fo
     <div class="card reveal"><span class="tag">Field &amp; Capture</span>
       <span class="pill">Flutter 3.x</span><span class="pill">drift ORM over SQLCipher (AES-256 at rest)</span><span class="pill">drift→SQLite offline journal</span><span class="pill">BarcodeDetector / html5-qrcode</span><span class="pill">Plain-GSM SMS bypass</span></div>
     <div class="card reveal"><span class="tag">Core Services</span>
-      <span class="pill">Node.js · Fastify</span><span class="pill">PostgreSQL 16</span><span class="pill">pg-boss queue — deliberately no Redis</span><span class="pill">node-pg-migrate</span><span class="pill">HMAC-signed ack deep-links</span></div>
+      <span class="pill">Node.js · Fastify</span><span class="pill">SQLite</span><span class="pill">In-memory scheduler — deliberately no Redis</span><span class="pill">HMAC-signed ack deep-links</span></div>
     <div class="card reveal"><span class="tag">Oversight Web</span>
       <span class="pill">React 18 + Vite</span><span class="pill">TanStack Query</span><span class="pill">Role-scoped dashboards</span><span class="pill">RCH CSV + FHIR NDJSON exports</span></div>
     <div class="card reveal"><span class="tag">Compliance by construction</span>

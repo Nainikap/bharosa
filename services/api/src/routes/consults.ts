@@ -24,7 +24,7 @@ export async function consultRoutes(fastify: FastifyInstance) {
     const subtype = consultSubtype(urgency);
     const timeoutMs = getTimeoutMs('consult', subtype);
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
@@ -111,7 +111,7 @@ export async function consultRoutes(fastify: FastifyInstance) {
     params.push(parseInt(limit || '50', 10));
     params.push(parseInt(offset || '0', 10));
 
-    const { rows } = await fastify.pg.query(query, params);
+    const { rows } = await fastify.db.query(query, params);
 
     return { data: rows, total: rows.length };
   });
@@ -129,7 +129,7 @@ export async function consultRoutes(fastify: FastifyInstance) {
       return reply.status(422).send({ error: 'structuredNotes is required' });
     }
 
-    const { rows } = await fastify.pg.query(
+    const { rows } = await fastify.db.query(
       "SELECT * FROM promise WHERE id = $1 AND type = 'consult'", [id]
     );
     if (rows.length === 0) {
@@ -151,7 +151,7 @@ export async function consultRoutes(fastify: FastifyInstance) {
       capturedAt: new Date(),
     };
 
-    const client = await fastify.pg.connect();
+    const client = await fastify.db.connect();
     try {
       await client.query('BEGIN');
 
