@@ -8,6 +8,7 @@ import {
   Shield,
   ChevronDown,
 } from 'lucide-react'
+import { apiClient } from '../api/client'
 import './EscalationInbox.css'
 
 type FilterTab = 'lapsed' | 'at-risk' | 'my-ward'
@@ -30,6 +31,25 @@ const escalations: Escalation[] = []
 
 export default function EscalationInbox() {
   const [activeTab, setActiveTab] = useState<FilterTab>('lapsed')
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc')
+
+  const handleSortToggle = () => {
+    setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')
+  }
+
+  const handleAcknowledge = async (id: string) => {
+    try {
+      await apiClient.post(`/promises/${id}/annotate`, {
+        annotation: {
+          acknowledged: true,
+          notes: 'Supervisor acknowledged escalation',
+        },
+      })
+      console.log('Acknowledged escalation', id)
+    } catch (error: any) {
+      console.error('Acknowledge escalation failed', error.response?.data || error.message)
+    }
+  }
 
   return (
     <div className="escalation-page animate-fadeInUp">
@@ -84,8 +104,8 @@ export default function EscalationInbox() {
         </div>
         <div className="sort-control">
           <span className="sort-label">SORT BY</span>
-          <button className="sort-btn">
-            Time Exceeded (Desc)
+          <button className="sort-btn" onClick={handleSortToggle}>
+            {sortDirection === 'desc' ? 'Time Exceeded (Desc)' : 'Time Exceeded (Asc)'}
             <ChevronDown size={14} />
           </button>
         </div>
@@ -149,7 +169,7 @@ export default function EscalationInbox() {
                   </div>
                 </td>
                 <td>
-                  <button className="acknowledge-btn">
+                  <button className="acknowledge-btn" onClick={() => handleAcknowledge(esc.id)}>
                     <CheckSquare size={14} />
                     Acknowledge
                   </button>

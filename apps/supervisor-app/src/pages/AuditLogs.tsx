@@ -51,6 +51,26 @@ function getActionColor(type: string) {
 export default function AuditLogs() {
   const [searchQuery, setSearchQuery] = useState('')
 
+  const handleExportCsv = () => {
+    const csv = ['timestamp,actor,actorRole,action,entity,entityId,status', ...auditLogs.map((log) => [
+      log.timestamp,
+      log.actor,
+      log.actorRole,
+      log.action,
+      log.entity,
+      log.entityId,
+      log.status,
+    ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))].join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'bharosa-audit-logs.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="audit-page animate-fadeInUp">
       <div className="audit-header">
@@ -65,7 +85,7 @@ export default function AuditLogs() {
           </p>
         </div>
         <div className="audit-header-actions">
-          <button className="btn btn-outline">
+          <button className="btn btn-outline" onClick={handleExportCsv}>
             <Download size={16} />
             <span>Export CSV</span>
           </button>
@@ -84,7 +104,7 @@ export default function AuditLogs() {
             className="audit-search-input"
           />
         </div>
-        <button className="btn btn-outline btn-sm">
+        <button className="btn btn-outline btn-sm" onClick={() => console.log('Audit filter opened')}>
           <Filter size={14} />
           Filters
         </button>
