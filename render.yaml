@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: bharosa-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build -w packages/shared-contracts && npm run build -w services/api
+    startCommand: node services/api/dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        value: ./database.sqlite
