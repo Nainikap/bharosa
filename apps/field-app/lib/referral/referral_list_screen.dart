@@ -25,6 +25,8 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
         return Colors.orange;
       case 'escalated':
         return AppColors.red;
+      case 'closed_na':
+        return AppColors.muted;
       default:
         return AppColors.muted;
     }
@@ -83,7 +85,7 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: statusColor(p.status).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                      child: Text(p.status.toUpperCase(), style: TextStyle(color: statusColor(p.status), fontSize: 10, fontWeight: FontWeight.w800)),
+                      child: Text(p.status.toUpperCase().replaceAll('_NA', ''), style: TextStyle(color: statusColor(p.status), fontSize: 10, fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

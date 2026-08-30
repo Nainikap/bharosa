@@ -12,7 +12,11 @@ import 'referral/referral_create_screen.dart';
 import 'referral/referral_list_screen.dart';
 import 'referral/referral_detail_screen.dart';
 import 'emergency/emergency_screen.dart';
+import 'notifications/notification_service.dart';
+import 'notifications/escalation_monitor.dart';
 import 'utils/constants.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,14 +24,19 @@ void main() async {
   await seedIfEmpty(db);
   final api = ApiService();
   final sync = SyncService(db, api);
-  runApp(BharosaApp(db: db, api: api, sync: sync));
+  final notifications = NotificationService()..navigatorKey = appNavigatorKey;
+  await notifications.init();
+  final escalationMonitor = EscalationMonitor(db, notifications);
+  runApp(BharosaApp(db: db, api: api, sync: sync, notifications: notifications, escalationMonitor: escalationMonitor));
 }
 
 class BharosaApp extends StatelessWidget {
   final AppDatabase db;
   final ApiService api;
   final SyncService sync;
-  const BharosaApp({super.key, required this.db, required this.api, required this.sync});
+  final NotificationService notifications;
+  final EscalationMonitor escalationMonitor;
+  const BharosaApp({super.key, required this.db, required this.api, required this.sync, required this.notifications, required this.escalationMonitor});
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +45,13 @@ class BharosaApp extends StatelessWidget {
         Provider<AppDatabase>.value(value: db),
         Provider<ApiService>.value(value: api),
         Provider<SyncService>.value(value: sync),
+        Provider<NotificationService>.value(value: notifications),
+        Provider<EscalationMonitor>.value(value: escalationMonitor),
       ],
       child: MaterialApp(
         title: 'Bharosa — Closing the Care Loop',
         debugShowCheckedModeBanner: false,
+        navigatorKey: appNavigatorKey,
         theme: ThemeData(
           scaffoldBackgroundColor: AppColors.bg,
           colorScheme: ColorScheme.fromSeed(

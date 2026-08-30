@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../data/db.dart';
 import '../auth/auth_service.dart';
 import '../sync/sync_service.dart';
+import '../notifications/escalation_monitor.dart';
 import '../utils/constants.dart';
 import '../widgets/app_scaffold.dart';
 
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int pendingSync = 0;
   int openReferrals = 0;
   bool syncing = false;
+  List<Promise> escalated = [];
 
   @override
   void initState() {
@@ -29,13 +31,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final name = await auth.getAshaName();
     final db = Provider.of<AppDatabase>(context, listen: false);
     final sync = Provider.of<SyncService>(context, listen: false);
+    final monitor = Provider.of<EscalationMonitor>(context, listen: false);
     final promises = await db.getAllPromises();
     final pending = await sync.pendingCount();
+    // Fire system notifications for any newly escalated patients
+    final escalatedList = await monitor.checkAndNotify();
     if (!mounted) return;
     setState(() {
       ashaName = name;
       openReferrals = promises.where((p) => p.status == 'open' || p.status == 'escalated').length;
       pendingSync = pending;
+      escalated = escalatedList;
     });
   }
 
@@ -71,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.all(14),
           children: [
+            if (escalated.isNotEmpty) _escalationBanner(),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -143,6 +150,44 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _escalationBanner() {
+    final first = escalated.first;
+    final desc = decodeJson(first.descriptionJson);
+    final patient = desc['patientName'] ?? 'A patient';
+    final code = desc['code'] ?? first.id.substring(0, 8);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.redBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.red),
+      ),
+      child: Row(children: [
+        const Icon(Icons.notification_important, color: AppColors.red),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              escalated.length == 1
+                  ? 'Escalated: $patient did not reach the facility'
+                  : '${escalated.length} escalated patients need your action',
+              style: const TextStyle(color: AppColors.head, fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+            const SizedBox(height: 2),
+            Text('Referral $code · no arrival recorded within SLA', style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 14)),
+          onPressed: () => Navigator.pushNamed(context, '/referralDetail', arguments: first.id).then((_) => _load()),
+          child: const Text('Handle'),
+        ),
+      ]),
     );
   }
 

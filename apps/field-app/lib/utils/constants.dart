@@ -28,6 +28,7 @@ class AppConfig {
   static const pinKey = 'bharosa_pin';
   static const pinSetKey = 'bharosa_pin_set';
   static const ashaNameKey = 'asha_name';
+  static const notifiedEscalationsKey = 'notified_escalations';
 }
 
 // Promise model constants — mirrors backend v1 evidence-timeout table
