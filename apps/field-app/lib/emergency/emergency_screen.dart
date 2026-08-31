@@ -81,6 +81,16 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         'type': 'referral',
         'priority': Priority.redFlag,
         'description': description,
+        'committedBy': {
+          'role': 'asha',
+          'workerId': 'asha_rekha',
+          'facilityId': patient.householdId,
+        },
+        'committedTo': {
+          'role': 'facility',
+          'facilityId': 'CHC Shivapur (14 km)',
+        },
+        'independence': 'direct',
         'createdAt': now,
         'code': code,
       },

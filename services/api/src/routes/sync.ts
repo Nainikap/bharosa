@@ -14,22 +14,26 @@ export async function syncRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'ops must be an array' });
     }
 
-    // Check seq conflict
+    // Check seq conflict (lenient: skip if lastSeq not provided)
     const { rows: cursorRows } = await fastify.db.query(
       'SELECT last_seq FROM sync_cursor WHERE device_id = $1',
       [user.deviceId]
     );
 
     if (cursorRows.length === 0) {
-      return reply.status(401).send({ error: 'Device not registered for sync' });
-    }
-
-    const serverSeq = parseInt(cursorRows[0].last_seq, 10);
-    if (lastSeq < serverSeq) {
-      return reply.status(409).send({
-        error: 'Sequence conflict - replay needed',
-        serverSeq,
-      });
+      // Auto-register sync cursor for this device
+      await fastify.db.query(
+        'INSERT INTO sync_cursor (device_id, last_seq) VALUES ($1, 0) ON CONFLICT (device_id) DO NOTHING',
+        [user.deviceId]
+      );
+    } else if (lastSeq !== undefined && lastSeq !== null) {
+      const serverSeq = parseInt(cursorRows[0].last_seq, 10);
+      if (lastSeq < serverSeq) {
+        return reply.status(409).send({
+          error: 'Sequence conflict - replay needed',
+          serverSeq,
+        });
+      }
     }
 
     const client = await fastify.db.connect();
@@ -39,16 +43,42 @@ export async function syncRoutes(fastify: FastifyInstance) {
       const priorityOrder: Record<string, number> = {
         emergency: 0, referral: 1, consult: 2, followup: 3, analytics: 4,
       };
-      const sortedOps = [...ops].sort(
+
+      // Normalize ops: accept both old field-app format and new format
+      const normalizedOps = ops.map((op: any) => {
+        // Old field-app format: { entity, payload, priority }
+        if (op.entity && op.payload) {
+          const entity = op.entity;
+          const payload = op.payload;
+          let table = 'promise';
+          let opType = 'insert';
+          if (entity === 'referral_update' || entity === 'promise_update') {
+            opType = 'update';
+          }
+          return {
+            table,
+            op: opType,
+            rowId: payload.id || op.rowId,
+            data: payload,
+            priority: op.priority || 'analytics',
+          };
+        }
+        // New format: { table, op, rowId, data, priority }
+        return op;
+      });
+
+      const sortedOps = [...normalizedOps].sort(
         (a: any, b: any) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4)
       );
 
       for (const op of sortedOps) {
+        // Write to sync journal
         await client.query(`
           INSERT INTO sync_journal (table_name, op, row_id, data, device_id, priority)
           VALUES ($1, $2, $3, $4, $5, $6)
         `, [op.table, op.op, op.rowId, JSON.stringify(op.data), user.deviceId, op.priority || 'analytics']);
 
+        // Handle promise inserts
         if (op.table === 'promise' && op.op === 'insert') {
           const d = op.data;
           await client.query(`
@@ -57,8 +87,8 @@ export async function syncRoutes(fastify: FastifyInstance) {
             ON CONFLICT (id) DO NOTHING
           `, [
             op.rowId, d.type,
-            JSON.stringify(d.committedBy), JSON.stringify(d.committedTo),
-            JSON.stringify(d.description), d.createdAt,
+            JSON.stringify(d.committedBy || {}), JSON.stringify(d.committedTo || {}),
+            JSON.stringify(d.description || {}), d.createdAt,
             d.independence || null,
           ]);
 
@@ -80,10 +110,55 @@ export async function syncRoutes(fastify: FastifyInstance) {
             `, [timeoutRows[0].timeout_ms.toString(), op.rowId]);
           }
         }
+
+        // Handle promise updates (status changes, closures from field app)
+        if (op.table === 'promise' && op.op === 'update') {
+          const d = op.data;
+          if (d.status) {
+            // Merge resolution details into description if present
+            if (d.resolutionReason || d.resolutionAction) {
+              const { rows: existing } = await client.query(
+                'SELECT description FROM promise WHERE id = $1', [op.rowId]
+              );
+              if (existing.length > 0) {
+                let desc: any = {};
+                try { desc = JSON.parse(existing[0].description); } catch {}
+                if (d.resolutionReason) desc.resolutionReason = d.resolutionReason;
+                if (d.resolutionAction) desc.resolutionAction = d.resolutionAction;
+                if (d.resolvedBy) desc.resolvedBy = d.resolvedBy;
+                if (d.resolvedAt) desc.resolvedAt = d.resolvedAt;
+
+                await client.query(`
+                  UPDATE promise SET status = $1, description = $2, version = version + 1 WHERE id = $3
+                `, [d.status, JSON.stringify(desc), op.rowId]);
+              } else {
+                await client.query(`
+                  UPDATE promise SET status = $1, version = version + 1 WHERE id = $2
+                `, [d.status, op.rowId]);
+              }
+            } else {
+              await client.query(`
+                UPDATE promise SET status = $1, version = version + 1 WHERE id = $2
+              `, [d.status, op.rowId]);
+            }
+
+            // Create audit event for the update
+            await client.query(`
+              INSERT INTO promise_event (id, promise_id, event_name, from_status, to_status, actor, payload)
+              VALUES (gen_random_uuid(), $1, $2, 'open', $3, $4, $5)
+            `, [
+              op.rowId,
+              d.status === 'kept' ? 'promise.kept' : d.status === 'closed_na' ? 'promise.closed_na' : 'promise.updated',
+              d.status,
+              JSON.stringify({ role: user.role, workerId: user.workerId, deviceId: user.deviceId }),
+              JSON.stringify(d),
+            ]);
+          }
+        }
       }
 
       const { rows: newSeqRows } = await client.query(
-        "SELECT last_insert_rowid() AS seq"
+        "SELECT COALESCE(MAX(seq), 0) AS seq FROM sync_journal"
       );
       const newSeq = parseInt(newSeqRows[0].seq, 10);
 

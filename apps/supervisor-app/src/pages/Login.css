@@ -4,148 +4,129 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--cl-bg) 0%, #f0f4f8 100%);
-  padding: 2rem;
+  background: var(--cl-bg);
+  padding: 1.5rem;
 }
 
-.login-brand {
-  text-align: center;
-  margin-bottom: 2rem;
-  animation: slideInDown 0.5s ease-out;
-}
-
-.brand-logo {
-  width: 64px;
-  height: 64px;
-  background: var(--cl-primary);
-  color: white;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  box-shadow: 0 8px 16px rgba(47, 212, 189, 0.2);
-}
-
-.brand-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--cl-text);
-  margin: 0;
-}
-
-.brand-subtitle {
-  color: var(--cl-text-muted);
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-}
-
-.login-card {
+.login-container {
   width: 100%;
-  max-width: 420px;
-  padding: 2rem;
-  animation: fadeInUp 0.5s ease-out;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 85vh;
 }
 
-.login-header {
+.login-header-section {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 3rem;
 }
 
-.login-header h2 {
-  font-size: 1.25rem;
-  color: var(--cl-text);
-  margin-bottom: 0.5rem;
+.login-logo-hex {
+  font-size: 48px;
+  color: var(--cl-green); /* Teal */
+  line-height: 1;
+  margin-bottom: 0.75rem;
 }
 
-.login-header p {
+.login-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--cl-text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
   color: var(--cl-text-muted);
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
-.login-form {
+.login-form-section {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  flex-grow: 1;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--cl-text-muted);
-  letter-spacing: 0.05em;
-}
-
-.input-with-icon {
+.form-group-field {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-icon {
+.input-prefix {
   position: absolute;
   left: 1rem;
   color: var(--cl-text-muted);
-}
-
-.input-with-icon input {
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid var(--cl-line);
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background: var(--cl-bg);
-}
-
-.input-with-icon input:focus {
-  outline: none;
-  border-color: var(--cl-primary);
-  box-shadow: 0 0 0 3px rgba(47, 212, 189, 0.1);
-}
-
-.login-error {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: var(--cl-red-bg);
-  color: var(--cl-red);
-  border-radius: 8px;
-  font-size: 0.875rem;
+  justify-content: center;
 }
 
-.login-btn {
+.form-group-field input {
   width: 100%;
-  padding: 0.875rem;
+  padding: 1.15rem 1rem 1.15rem 3rem;
+  border: 1px solid #000000; /* Black lines as in field app */
+  border-radius: 12px;
+  font-size: 1rem;
+  background: var(--cl-surface);
+  color: var(--cl-text-primary);
+  transition: border-color 0.2s;
+}
+
+.form-group-field input:focus {
+  outline: none;
+  border-color: var(--cl-green);
+  box-shadow: 0 0 0 2px rgba(47, 212, 189, 0.2);
+}
+
+.pin-field input {
+  letter-spacing: 6px;
+  font-size: 20px;
+}
+.pin-field input::placeholder {
+  letter-spacing: normal;
+  font-size: 1rem;
+}
+
+.error-text {
+  color: var(--cl-red);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.login-submit-btn {
+  background: var(--cl-navy);
+  color: var(--cl-white);
+  border: none;
+  border-radius: 12px;
+  padding: 1.125rem;
   font-size: 1rem;
   font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   margin-top: 0.5rem;
+  transition: opacity 0.2s;
 }
 
-.login-footer {
-  margin-top: 3rem;
+.login-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-footer-text {
   text-align: center;
   color: var(--cl-text-muted);
-  font-size: 0.75rem;
+  font-size: 11px;
   line-height: 1.5;
-  opacity: 0.8;
-  animation: fadeIn 1s ease-out 0.5s both;
-}
-
-@keyframes slideInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  margin-top: 2rem;
+  margin-bottom: 1rem;
 }

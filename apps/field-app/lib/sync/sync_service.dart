@@ -60,15 +60,37 @@ class SyncService {
     int synced = 0;
     int failed = 0;
 
-    // Group into payload for bulk push if backend supports it, else per-op
-    final payloads = ops
-        .map((e) => {
-              'opId': e.opId,
-              'entity': e.entity,
-              'payload': jsonDecode(e.payloadJson),
-              'priority': e.priority,
-            })
-        .toList();
+    // Translate field-app journal format to backend-expected format:
+    // Backend expects: { table, op, rowId, data, priority }
+    // Field app stores: { entity, payloadJson, priority }
+    final payloads = ops.map((e) {
+      final payload = jsonDecode(e.payloadJson) as Map<String, dynamic>;
+      final entity = e.entity;
+
+      // Map entity names to backend table names
+      String table;
+      String op;
+      if (entity == 'referral' || entity == 'promise') {
+        table = 'promise';
+        op = 'insert';
+      } else if (entity == 'referral_update' || entity == 'promise_update') {
+        table = 'promise';
+        op = 'update';
+      } else {
+        table = entity;
+        op = 'insert';
+      }
+
+      final rowId = payload['id'] as String? ?? generateUuid();
+
+      return {
+        'table': table,
+        'op': op,
+        'rowId': rowId,
+        'data': payload,
+        'priority': e.priority,
+      };
+    }).toList();
 
     final res = await api.pushSync(payloads);
     if (res != null) {

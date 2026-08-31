@@ -182,6 +182,16 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
         'type': 'referral',
         'priority': priority,
         'description': description,
+        'committedBy': {
+          'role': 'asha',
+          'workerId': 'asha_rekha',
+          'facilityId': patient.householdId,
+        },
+        'committedTo': {
+          'role': 'facility',
+          'facilityId': facility,
+        },
+        'independence': 'direct',
         'createdAt': now,
         'code': code,
       },

@@ -13,34 +13,34 @@
 
 :root {
   /* Primary palette */
-  --cl-navy: #0A2540;
-  --cl-navy-light: #0D3158;
-  --cl-blue: #1565C0;
-  --cl-blue-hover: #1976D2;
-  --cl-blue-light: #E8F0FE;
-  --cl-blue-50: #F0F6FF;
+  --cl-navy: #1E3A5F;
+  --cl-navy-light: #2a5286;
+  --cl-blue: #2FD4BD;
+  --cl-blue-hover: #1ea995;
+  --cl-blue-light: rgba(47, 212, 189, 0.1);
+  --cl-blue-50: rgba(47, 212, 189, 0.05);
 
   /* Semantic colors */
-  --cl-red: #B71C1C;
-  --cl-red-light: #FFEBEE;
-  --cl-red-bg: #FFF5F5;
-  --cl-red-border: #E53935;
-  --cl-orange: #E65100;
-  --cl-orange-light: #FFF3E0;
-  --cl-orange-bg: rgba(230, 81, 0, 0.08);
-  --cl-green: #2E7D32;
-  --cl-green-light: #E8F5E9;
+  --cl-red: #FF8B98;
+  --cl-red-light: #FEF3F3;
+  --cl-red-bg: #FEF3F3;
+  --cl-red-border: #FF8B98;
+  --cl-orange: #FFB300;
+  --cl-orange-light: rgba(255, 179, 0, 0.15);
+  --cl-orange-bg: rgba(255, 179, 0, 0.08);
+  --cl-green: #2FD4BD;
+  --cl-green-light: rgba(47, 212, 189, 0.1);
 
   /* Neutrals */
   --cl-white: #FFFFFF;
-  --cl-bg: #F5F7FA;
+  --cl-bg: #FFFFFF;
   --cl-surface: #FFFFFF;
   --cl-border: #E2E8F0;
   --cl-border-light: #F1F5F9;
-  --cl-text-primary: #0A2540;
-  --cl-text-secondary: #64748B;
-  --cl-text-muted: #94A3B8;
-  --cl-text-label: #475569;
+  --cl-text-primary: #111827;
+  --cl-text-secondary: #6B7280;
+  --cl-text-muted: #6B7280;
+  --cl-text-label: #6B7280;
 
   /* Shadows */
   --cl-shadow-sm: 0 1px 3px rgba(10, 37, 64, 0.04), 0 1px 2px rgba(10, 37, 64, 0.06);

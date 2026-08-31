@@ -1,12 +1,20 @@
 
 
 const API_BASE = 'https://bharosa-api.onrender.com/api';
-const DEVICE_ID = 'dev-supervisor-123';
+const DEVICE_ID = 'dev-script-123';
 const PIN = '1234';
 
 async function testBackend() {
   console.log('--- Testing Backend API ---');
   
+  // 0. Register
+  console.log('\n0. Registering...');
+  await fetch(`${API_BASE}/auth/device/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceId: DEVICE_ID, pin: PIN, role: 'supervisor', workerId: 'script' })
+  });
+
   // 1. Login
   console.log('\n1. Logging in...');
   const loginRes = await fetch(`${API_BASE}/auth/device/login`, {

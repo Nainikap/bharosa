@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Lock, Activity, UserCircle } from 'lucide-react'
+import { Lock, UserCircle, LogIn } from 'lucide-react'
 import axios from 'axios'
 import './Login.css'
 
@@ -22,6 +22,10 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (pin.length < 4) {
+      setError('PIN must be at least 4 digits')
+      return
+    }
     setLoading(true)
 
     try {
@@ -44,7 +48,7 @@ export default function Login() {
           localStorage.setItem('accessToken', data.accessToken)
           navigate('/')
         } catch (regErr: any) {
-          setError('Failed to register device. Invalid PIN or Device ID.')
+          setError('Wrong PIN — try again')
         }
       } else {
         setError('Login failed. Please check your connection and try again.')
@@ -56,66 +60,58 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-brand">
-        <div className="brand-logo">
-          <Activity size={32} />
-        </div>
-        <h1 className="brand-title">Bharosa Supervisor</h1>
-        <p className="brand-subtitle">Health Management System</p>
-      </div>
-
-      <div className="login-card floating-card">
-        <div className="login-header">
-          <h2>Welcome Back</h2>
-          <p>Secure login with your registered device ID and PIN</p>
+      <div className="login-container">
+        <div className="login-header-section">
+          <div className="login-logo-hex">⬡</div>
+          <h1 className="login-title">Supervisor Login</h1>
+          <p className="login-subtitle">Supervisor app · backend-first</p>
         </div>
 
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="form-group">
-            <label>DEVICE ID</label>
-            <div className="input-with-icon">
-              <UserCircle size={20} className="input-icon" />
-              <input
-                type="text"
-                value={deviceId}
-                onChange={(e) => setDeviceId(e.target.value)}
-                placeholder="e.g. dev-supervisor-123"
-                required
-              />
+        <form onSubmit={handleLogin} className="login-form-section">
+          <div className="form-group-field">
+            <div className="input-prefix">
+              <UserCircle size={20} />
             </div>
+            <input
+              type="text"
+              value={deviceId}
+              onChange={(e) => setDeviceId(e.target.value)}
+              placeholder="Supervisor ID"
+              required
+            />
           </div>
 
-          <div className="form-group">
-            <label>PIN</label>
-            <div className="input-with-icon">
-              <Lock size={20} className="input-icon" />
-              <input
-                type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="Enter your 4-digit PIN"
-                maxLength={6}
-                required
-              />
+          <div className="form-group-field pin-field">
+            <div className="input-prefix">
+              <Lock size={20} />
             </div>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="PIN (4-6 digits)"
+              maxLength={6}
+              required
+            />
           </div>
 
           {error && (
-            <div className="login-error">
-              <Shield size={16} />
-              <span>{error}</span>
+            <div className="error-text">
+              {error}
             </div>
           )}
 
-          <button type="submit" className="btn btn-primary login-btn" disabled={loading}>
-            {loading ? 'Authenticating...' : 'Secure Login'}
+          <button type="submit" className="login-submit-btn" disabled={loading}>
+            <LogIn size={20} className="btn-icon" />
+            {loading ? 'Authenticating...' : 'Login'}
           </button>
         </form>
-      </div>
 
-      <p className="login-footer">
-        End-to-End Encrypted <br /> Ministry of Health Services
-      </p>
+        <p className="login-footer-text">
+          PIN is device-secure · Data encrypted with AES-256<br />
+          Every promise, kept or strengthened
+        </p>
+      </div>
     </div>
   )
 }
