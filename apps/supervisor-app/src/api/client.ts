@@ -6,35 +6,55 @@ export const apiClient = axios.create({
   baseURL: API_BASE,
 });
 
-let accessToken: string | null = null;
-
-apiClient.interceptors.request.use(async (config) => {
-  if (!accessToken && config.url !== '/auth/device/login' && config.url !== '/auth/device/register') {
-    // Auto-login for development
-    try {
-      const { data } = await axios.post(`${API_BASE}/auth/device/login`, {
-        deviceId: 'dev-supervisor-123',
-        pin: '1234',
-      });
-      accessToken = data.accessToken;
-    } catch (err: any) {
-      if (err.response?.status === 401 || err.response?.status === 404) {
-        // Register it
-        const { data } = await axios.post(`${API_BASE}/auth/device/register`, {
-          deviceId: 'dev-supervisor-123',
-          role: 'supervisor',
-          workerId: 'worker-sup-1',
-          facilityId: 'fac-1',
-          pin: '1234',
-        });
-        accessToken = data.accessToken;
-      }
-    }
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
-  }
-
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => {
+    const tryParse = (val: any) => {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    const parsePromise = (p: any) => {
+      if (!p || typeof p !== 'object') return p;
+      // Only parse if it looks like a promise (has id and type)
+      if (p.id && p.type) {
+        return {
+          ...p,
+          description: tryParse(p.description),
+          committedTo: tryParse(p.committedTo),
+          committedBy: tryParse(p.committedBy),
+          evidence: tryParse(p.evidence),
+          ladder: tryParse(p.ladder),
+        };
+      }
+      return p;
+    };
+
+    if (response.data) {
+      if (Array.isArray(response.data.data)) {
+        response.data.data = response.data.data.map(parsePromise);
+      } else if (response.data.id && response.data.type) {
+        response.data = parsePromise(response.data);
+      }
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('accessToken');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);

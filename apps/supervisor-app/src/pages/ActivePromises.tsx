@@ -42,11 +42,12 @@ const getInitialsColor = (id: string) => {
 
 const mapPromiseToCard = (p: any): PromiseCard => {
   const refCode = p.id.split('-')[0].toUpperCase();
-  const name = p.patientName || p.villageName || p.committedTo?.facilityId || 'Unknown Patient';
+  const name = p.patientName || p.description?.patientName || p.description?.name || p.villageName || p.description?.village || p.committedTo?.facilityId || 'Unknown Patient';
   const service = p.type === 'referral' ? 'Referral' : p.type;
   const serviceIcon = 'immunization';
   
-  const date = new Date(p.createdAt).toLocaleDateString();
+  const d = new Date(p.sessionDate || p.deadline || p.createdAt);
+  const date = d.toLocaleDateString();
   const initials = name.substring(0, 2).toUpperCase();
   
   let overdueDays = 0;

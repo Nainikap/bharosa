@@ -42,7 +42,26 @@ export default function FacilityArrival() {
     }
 
     try {
-      const promiseId = referralCode.trim()
+      const shortCode = referralCode.trim().toUpperCase()
+      let promiseId = shortCode;
+
+      if (shortCode.length < 20) {
+        const res = await apiClient.get('/promises?status=open');
+        const escalatedRes = await apiClient.get('/promises?status=escalated');
+        const allPromises = [...res.data.data, ...escalatedRes.data.data];
+        
+        const matched = allPromises.find((p: any) => 
+          p.description?.code?.toUpperCase() === shortCode || 
+          p.id.toUpperCase().startsWith(shortCode)
+        );
+        
+        if (!matched) {
+          alert('Could not find a referral with that code. Please try again.');
+          return;
+        }
+        promiseId = matched.id;
+      }
+
       await apiClient.post(`/promises/${promiseId}/evidence`, {
         kind: 'arrival',
         source: 'manual_code',

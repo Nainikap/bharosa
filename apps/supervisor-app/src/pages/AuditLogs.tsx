@@ -31,15 +31,21 @@ interface AuditEntry {
 const mapEventToAudit = (e: any): AuditEntry => {
   const d = new Date(e.ts);
   let actionType: AuditEntry['actionType'] = 'update';
-  if (e.event_name === 'PROMISE_CREATED') actionType = 'create';
-  if (e.event_name === 'PROMISE_ESCALATED' || e.event_name === 'PROMISE_LAPSED') actionType = 'escalation';
-  if (e.event_name === 'PROMISE_FULFILLED') actionType = 'arrival';
+  const evtName = (e.event_name || '').toLowerCase();
+  if (evtName === 'promise.created' || evtName === 'promise_created') actionType = 'create';
+  if (evtName === 'promise.escalated' || evtName === 'promise.lapsed' || evtName.includes('escalated')) actionType = 'escalation';
+  if (evtName === 'promise.kept' || evtName === 'promise.kept_late' || evtName === 'promise_fulfilled') actionType = 'arrival';
+  
+  let actorObj = {} as any;
+  try {
+    actorObj = typeof e.actor === 'string' ? JSON.parse(e.actor) : e.actor;
+  } catch (err) {}
   
   return {
     id: e.id,
     timestamp: d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    actor: e.actor,
-    actorRole: 'System/User',
+    actor: actorObj?.workerId || 'System',
+    actorRole: actorObj?.role || 'System/User',
     action: e.event_name,
     actionType,
     entity: e.promise_type || 'Promise',
