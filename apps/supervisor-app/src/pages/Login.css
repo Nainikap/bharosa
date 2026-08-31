@@ -1,0 +1,151 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--cl-bg) 0%, #f0f4f8 100%);
+  padding: 2rem;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: slideInDown 0.5s ease-out;
+}
+
+.brand-logo {
+  width: 64px;
+  height: 64px;
+  background: var(--cl-primary);
+  color: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  box-shadow: 0 8px 16px rgba(47, 212, 189, 0.2);
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cl-text);
+  margin: 0;
+}
+
+.brand-subtitle {
+  color: var(--cl-text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-header h2 {
+  font-size: 1.25rem;
+  color: var(--cl-text);
+  margin-bottom: 0.5rem;
+}
+
+.login-header p {
+  color: var(--cl-text-muted);
+  font-size: 0.9rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cl-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--cl-text-muted);
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  border: 1px solid var(--cl-line);
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: var(--cl-bg);
+}
+
+.input-with-icon input:focus {
+  outline: none;
+  border-color: var(--cl-primary);
+  box-shadow: 0 0 0 3px rgba(47, 212, 189, 0.1);
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--cl-red-bg);
+  color: var(--cl-red);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.login-footer {
+  margin-top: 3rem;
+  text-align: center;
+  color: var(--cl-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  opacity: 0.8;
+  animation: fadeIn 1s ease-out 0.5s both;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

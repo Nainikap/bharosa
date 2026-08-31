@@ -2,6 +2,25 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 export async function captureRoutes(fastify: FastifyInstance) {
 
+  // ─── GET /capture ──────────────────────────────────────────────
+  // Get recent encounters (arrivals)
+  fastify.get('/', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { facilityId } = request.user;
+    
+    // Fetch last 10 arrivals for the facility
+    const { rows } = await fastify.db.query(`
+      SELECT e.id, e.patient_id, e.ts, e.data, p.name as patient_name
+      FROM encounter e
+      LEFT JOIN patient p ON e.patient_id = p.local_id
+      WHERE e.facility_id = $1 AND e.type = 'arrival'
+      ORDER BY e.ts DESC LIMIT 10
+    `, [facilityId]);
+
+    return { data: rows };
+  });
+
   // ─── POST /capture/arrival ───────────────────────────────────
   // Scan/manual/batch → registration_match evidence (V2 typed)
   fastify.post('/arrival', {

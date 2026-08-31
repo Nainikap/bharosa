@@ -8,6 +8,7 @@ import {
   Shield,
   ChevronDown,
 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import './EscalationInbox.css'
 
@@ -27,11 +28,54 @@ interface Escalation {
   auditLog: string
 }
 
-const escalations: Escalation[] = []
+const getInitialsColor = (id: string) => {
+  const colors = ['#e53935', '#d81b60', '#8e24aa', '#3949ab', '#1e88e5', '#00acc1', '#43a047', '#ff8f00'];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const mapPromiseToEscalation = (p: any): Escalation => {
+  const name = p.patientName || p.description?.patientName || p.description?.name || p.villageName || p.description?.village || p.committedTo?.facilityId || 'Unknown Patient';
+  
+  let lapsedTime = 'Unknown';
+  let lapsedLevel: 'overdue' | 'warning' = 'warning';
+  if (p.deadline) {
+    const diff = Date.now() - new Date(p.deadline).getTime();
+    if (diff > 0) {
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      lapsedTime = `${days} Days`;
+      lapsedLevel = 'overdue';
+    }
+  }
+
+  return {
+    id: p.id,
+    name,
+    initials: name.substring(0, 2).toUpperCase(),
+    initialsColor: getInitialsColor(p.id),
+    tags: [{ label: p.type.toUpperCase(), color: '#1e88e5' }],
+    reason: p.type === 'referral' ? 'Missed Referral' : 'Lapsed Promise',
+    reasonDesc: 'Patient did not arrive at destination facility.',
+    lapsedTime,
+    lapsedLevel,
+    auditVerified: true,
+    auditLog: 'System generated escalation',
+  };
+};
 
 export default function EscalationInbox() {
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<FilterTab>('lapsed')
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc')
+
+  const { data: promises = [], isLoading } = useQuery({
+    queryKey: ['promises'],
+    queryFn: async () => {
+      const res = await apiClient.get('/promises');
+      return res.data.data;
+    },
+  });
 
   const handleSortToggle = () => {
     setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')
@@ -45,11 +89,20 @@ export default function EscalationInbox() {
           notes: 'Supervisor acknowledged escalation',
         },
       })
+      queryClient.invalidateQueries({ queryKey: ['promises'] })
       console.log('Acknowledged escalation', id)
     } catch (error: any) {
       console.error('Acknowledge escalation failed', error.response?.data || error.message)
     }
   }
+
+  if (isLoading) return <div>Loading...</div>;
+
+  const escalatedPromises = promises.filter((p: any) => p.status === 'escalated' || p.status === 'lapsed');
+  const criticalCount = promises.filter((p: any) => p.status === 'lapsed').length;
+  const warningCount = promises.filter((p: any) => p.status === 'escalated').length;
+
+  const escalations = escalatedPromises.map(mapPromiseToEscalation);
 
   return (
     <div className="escalation-page animate-fadeInUp">
@@ -68,11 +121,11 @@ export default function EscalationInbox() {
         <div className="escalation-stats">
           <div className="escalation-stat critical-stat">
             <span className="stat-label">CRITICAL</span>
-            <span className="stat-value critical">12</span>
+            <span className="stat-value critical">{criticalCount}</span>
           </div>
           <div className="escalation-stat warning-stat">
             <span className="stat-label">WARNING</span>
-            <span className="stat-value warning">34</span>
+            <span className="stat-value warning">{warningCount}</span>
           </div>
         </div>
       </div>
@@ -124,7 +177,7 @@ export default function EscalationInbox() {
             </tr>
           </thead>
           <tbody className="stagger">
-            {escalations.map((esc, idx) => (
+            {escalations.map((esc: Escalation, idx: number) => (
               <tr key={idx} className="escalation-row animate-fadeInUp">
                 <td>
                   <div className="patient-cell">
@@ -135,7 +188,7 @@ export default function EscalationInbox() {
                       <span className="patient-name">{esc.name}</span>
                       <span className="patient-id">ID: {esc.id}</span>
                       <div className="patient-tags">
-                        {esc.tags.map((tag, ti) => (
+                        {esc.tags.map((tag: any, ti: number) => (
                           <span key={ti} className="esc-tag" style={{ background: `${tag.color}15`, color: tag.color, borderColor: `${tag.color}30` }}>
                             {tag.label}
                           </span>

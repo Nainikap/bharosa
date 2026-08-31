@@ -17,6 +17,7 @@ import { consultRoutes } from './routes/consults';
 import { taskRoutes } from './routes/tasks';
 import { exportRoutes } from './routes/exports';
 import { metricRoutes } from './routes/metrics';
+import { eventsRoutes } from './routes/events';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ async function buildApp() {
   await app.register(taskRoutes,     { prefix: '/api/tasks' });
   await app.register(exportRoutes,   { prefix: '/api/exports' });
   await app.register(metricRoutes,   { prefix: '/api/metrics' });
+  await app.register(eventsRoutes,   { prefix: '/api/events' });
 
   return app;
 }

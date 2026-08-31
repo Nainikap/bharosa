@@ -17,7 +17,7 @@ class AppConfig {
   // Backend — mock for v1 demo. Replace with real host when backend v1 is up.
   static const apiBase = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://10.0.2.2:3000/api',
+    defaultValue: 'https://bharosa-api.onrender.com/api',
   );
   // Block-office SMS gateway number for emergency bypass (plain GSM, no data needed)
   static const gatewaySmsNumber = String.fromEnvironment(
