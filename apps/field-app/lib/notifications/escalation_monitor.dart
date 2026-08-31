@@ -16,6 +16,9 @@ class EscalationMonitor {
   /// Returns the list of currently-escalated promises after firing
   /// notifications for any newly escalated ones.
   Future<List<Promise>> checkAndNotify() async {
+    // Enforce local SLA clocks first — referrals past their deadline
+    // escalate even when offline.
+    await db.checkLocalDeadlines();
     final escalated = await db.getPromisesByStatus(PromiseStatus.escalated);
     final prefs = await SharedPreferences.getInstance();
     final notified = prefs.getStringList(AppConfig.notifiedEscalationsKey) ?? <String>[];

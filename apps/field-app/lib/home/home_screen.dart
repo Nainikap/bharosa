@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/db.dart';
@@ -19,11 +21,21 @@ class _HomeScreenState extends State<HomeScreen> {
   int openReferrals = 0;
   bool syncing = false;
   List<Promise> escalated = [];
+  Timer? _deadlineTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // Poll local SLA clocks so a referral crossing its deadline escalates
+    // (notification + banner) within seconds, even while the app is open.
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 10), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

@@ -94,8 +94,11 @@ class _ReferralListScreenState extends State<ReferralListScreen> {
                         const SizedBox(height: 2),
                         Text('${desc['facility'] ?? p.toFacility ?? ''} · ${p.priority}',
                             style: const TextStyle(color: AppColors.muted, fontSize: 11)),
-                        Text('Created: ${_fmt(p.createdAt)} · SLA: ${p.slaStart ?? 'pending sync'}',
+                        Text('Created: ${_fmt(p.createdAt)} · SLA start: ${p.slaStart != null ? _fmt(p.slaStart!) : 'pending sync'}',
                             style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+                        if (p.deadline != null)
+                          Text('Deadline: ${_fmt(p.deadline!)}${p.status == 'open' ? ' (open)' : ''}',
+                              style: const TextStyle(color: AppColors.head, fontSize: 11, fontWeight: FontWeight.w700)),
                       ]),
                     ),
                     const Icon(Icons.chevron_right, color: AppColors.muted, size: 18),

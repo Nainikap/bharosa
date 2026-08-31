@@ -105,9 +105,9 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
           const Text('Priority', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Wrap(spacing: 8, children: [
-            ChoiceChip(label: const Text('Routine (7d)'), selected: priority == Priority.normal, onSelected: (_) => setState(() => priority = Priority.normal)),
-            ChoiceChip(label: const Text('Urgent (48h)'), selected: priority == Priority.urgent, onSelected: (_) => setState(() => priority = Priority.urgent)),
-            ChoiceChip(label: const Text('Red-flag (24h)'), selected: priority == Priority.redFlag, onSelected: (_) => setState(() => priority = Priority.redFlag)),
+            ChoiceChip(label: const Text('Routine (3 min)'), selected: priority == Priority.normal, onSelected: (_) => setState(() => priority = Priority.normal)),
+            ChoiceChip(label: const Text('Urgent (2 min)'), selected: priority == Priority.urgent, onSelected: (_) => setState(() => priority = Priority.urgent)),
+            ChoiceChip(label: const Text('Red-flag (1 min)'), selected: priority == Priority.redFlag, onSelected: (_) => setState(() => priority = Priority.redFlag)),
           ]),
           const SizedBox(height: 18),
           PrimaryButton(
@@ -164,7 +164,11 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
             descriptionJson: drift.Value(jsonEncode(description)),
             createdAt: now,
             slaStart: const drift.Value.absent(),
-            deadline: const drift.Value.absent(),
+            // Demo SLA clock: deadline stamped at creation so the local
+            // deadline check can escalate the miss (see SlaDemo)
+            deadline: drift.Value(
+              DateTime.now().add(SlaDemo.forPriority(priority)).toIso8601String(),
+            ),
             evidenceJson: const drift.Value.absent(),
             status: const drift.Value('open'),
             ladderJson: drift.Value(jsonEncode(ladder)),
@@ -203,6 +207,12 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       PromisesCompanion(descriptionJson: drift.Value(jsonEncode(description))),
     );
 
+    // Surface the SLA deadline right after creation so the ASHA can see it
+    final deadlineAt = DateTime.now().add(SlaDemo.forPriority(priority));
+    String two(int n) => n.toString().padLeft(2, '0');
+    final deadlineLabel =
+        '${two(deadlineAt.hour)}:${two(deadlineAt.minute)} (SLA ${SlaDemo.forPriority(priority).inMinutes} min)';
+
     if (mounted) {
       setState(() {
         saving = false;
@@ -210,7 +220,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(messageStatus),
+          content: Text('$messageStatus · Deadline: $deadlineLabel'),
           backgroundColor: AppColors.teal,
         ),
       );

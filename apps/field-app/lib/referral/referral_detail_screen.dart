@@ -127,7 +127,7 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
               const Divider(color: AppColors.line, height: 24),
               _row('Created (device)', _fmt(p.createdAt)),
               _row('SLA start (server)', p.slaStart ?? 'pending sync — dual-clock V1'),
-              _row('Deadline', p.deadline ?? '—'),
+              _row('Deadline', p.deadline != null ? _fmt(p.deadline!) : '—'),
               _row('Evidence', p.evidenceJson ?? '—'),
               const SizedBox(height: 12),
               Container(

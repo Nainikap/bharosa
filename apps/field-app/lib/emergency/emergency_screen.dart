@@ -60,6 +60,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             toRole: const drift.Value('chc'),
             descriptionJson: drift.Value(jsonEncode(description)),
             createdAt: now,
+            // Demo SLA clock (see SlaDemo) — red-flag referrals escalate
+            // locally after 1 minute if no arrival is recorded
+            deadline: drift.Value(
+              DateTime.now().add(SlaDemo.redFlag).toIso8601String(),
+            ),
             status: const drift.Value('open'),
             ladderJson: drift.Value(jsonEncode([
               {'role': 'asha', 'workerId': 'asha_rekha'},

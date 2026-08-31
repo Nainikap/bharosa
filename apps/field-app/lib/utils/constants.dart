@@ -57,3 +57,17 @@ class Priority {
   static const emergency = 'emergency';
   static const redFlag = 'red_flag';
 }
+
+// Demo SLA clocks — production durations are 7d/48h/24h, compressed to minutes
+// so the offline prototype demonstrates the miss → escalate → handle loop live.
+class SlaDemo {
+  static const normal = Duration(minutes: 3);
+  static const urgent = Duration(minutes: 2);
+  static const redFlag = Duration(minutes: 1);
+
+  static Duration forPriority(String p) {
+    if (p == Priority.redFlag) return redFlag;
+    if (p == Priority.urgent) return urgent;
+    return normal;
+  }
+}

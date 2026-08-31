@@ -44,7 +44,7 @@ async function runLapseCheck(fastify: FastifyInstance) {
     FROM promise p
     WHERE p.status = 'open'
       AND p.deadline IS NOT NULL
-      AND p.deadline < datetime('now')
+      AND julianday(p.deadline) < julianday('now')
   `);
 
   for (const row of overdue) {

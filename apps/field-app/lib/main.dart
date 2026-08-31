@@ -22,6 +22,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDatabase();
   await seedIfEmpty(db);
+  // Older referrals (created before deadline stamping) get a clock so the
+  // local SLA check can escalate them too.
+  await db.backfillDeadlines();
   final api = ApiService();
   final sync = SyncService(db, api);
   final notifications = NotificationService()..navigatorKey = appNavigatorKey;

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../utils/constants.dart';
 
 part 'db.g.dart';
 
@@ -67,6 +68,9 @@ class SyncJournals extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// For unit tests — inject an in-memory executor.
+  AppDatabase.forTesting(QueryExecutor executor) : super(executor);
+
   @override
   int get schemaVersion => 1;
 
@@ -94,6 +98,36 @@ class AppDatabase extends _$AppDatabase {
       (select(promises)..where((t) => t.id.equals(id))).getSingleOrNull();
   Future<List<SyncJournal>> pendingOps() =>
       (select(syncJournals)..where((t) => t.status.equals('pending'))..orderBy([(t) => OrderingTerm.asc(t.seq)])).get();
+
+  /// Older rows created before deadlines were stamped still need a clock,
+  /// otherwise they can never escalate. Backfill from createdAt + demo SLA.
+  Future<void> backfillDeadlines() async {
+    final missing = await (select(promises)
+            ..where((t) => t.deadline.isNull() & t.status.equals('open')))
+        .get();
+    for (final p in missing) {
+      final base = DateTime.tryParse(p.createdAt) ?? DateTime.now();
+      final sla = SlaDemo.forPriority(p.priority);
+      await (update(promises)..where((t) => t.id.equals(p.id))).write(
+        PromisesCompanion(deadline: Value(base.add(sla).toIso8601String())),
+      );
+    }
+  }
+
+  /// Local SLA enforcement (offline-safe): any referral still `open` whose
+  /// deadline has passed is escalated locally. Returns how many were escalated.
+  Future<int> checkLocalDeadlines() async {
+    final now = DateTime.now().toIso8601String();
+    final overdue = await (select(promises)..where((t) =>
+            t.status.equals('open') &
+            t.deadline.isNotNull() &
+            t.deadline.isSmallerThanValue(now)))
+        .get();
+    if (overdue.isEmpty) return 0;
+    await (update(promises)..where((t) => t.id.isIn(overdue.map((e) => e.id).toList())))
+        .write(const PromisesCompanion(status: Value('escalated'), dirty: Value(1)));
+    return overdue.length;
+  }
 }
 
 // JSON helpers

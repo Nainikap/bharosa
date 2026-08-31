@@ -11,9 +11,11 @@ export interface TimeoutEntry {
 
 export const EVIDENCE_TIMEOUTS: Record<PromiseType, TimeoutEntry[]> = {
   referral: [
-    { subtype: 'red_flag',  timeoutMs: 24 * 60 * 60 * 1000 },   // 24h
-    { subtype: 'urgent',    timeoutMs: 48 * 60 * 60 * 1000 },   // 48h
-    { subtype: 'routine',   timeoutMs: 7 * 24 * 60 * 60 * 1000 }, // 7d
+    // 1 minute (for prototype/testing) — matches dist + referral_escalation.test.ts
+    { subtype: 'red_flag',  timeoutMs: 60 * 1000 },
+    { subtype: 'urgent',    timeoutMs: 60 * 1000 },
+    { subtype: 'routine',   timeoutMs: 60 * 1000 },
+    { subtype: 'default',   timeoutMs: 60 * 1000 },
   ],
   vaccine_supply: [
     { subtype: 'default',   timeoutMs: 24 * 60 * 60 * 1000 },   // T+1d after session date
@@ -88,7 +90,7 @@ export const JWT_REFRESH_TTL_SEC = 604800;   // 7 days
 export const HMAC_DEEPLINK_TTL_SEC = 900;    // 15 minutes
 
 // ─── Scheduler ──────────────────────────────────────────────────
-export const SCHEDULER_TICK_MS = 60_000;     // 60 seconds
+export const SCHEDULER_TICK_MS = 10_000;     // 10 seconds — timely detection of 1-minute SLAs
 
 // ─── Referral Priority Mapping ──────────────────────────────────
 export function referralSubtype(priority: ReferralPriority): string {
