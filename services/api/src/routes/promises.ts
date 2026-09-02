@@ -294,6 +294,15 @@ export async function promiseRoutes(fastify: FastifyInstance) {
   });
 }
 
+// Normalize SQLite datetime ("2026-08-31 06:57:03") → ISO 8601 ("2026-08-31T06:57:03Z")
+function toISO(val: string | null | undefined): string | null {
+  if (!val) return null;
+  // Already ISO format
+  if (val.includes('T')) return val;
+  // SQLite format: "YYYY-MM-DD HH:MM:SS" → add T and Z
+  return val.replace(' ', 'T') + 'Z';
+}
+
 function formatPromise(row: any) {
   return {
     id: row.id,
@@ -301,9 +310,9 @@ function formatPromise(row: any) {
     committedBy: row.committed_by,
     committedTo: row.committed_to,
     description: row.description,
-    createdAt: row.created_at,
-    slaStart: row.sla_start,
-    deadline: row.deadline,
+    createdAt: toISO(row.created_at),
+    slaStart: toISO(row.sla_start),
+    deadline: toISO(row.deadline),
     evidence: row.evidence,
     independence: row.independence,
     status: row.status,
