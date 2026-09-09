@@ -7,7 +7,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
   // Create a referral promise (convenience wrapper over /promises)
   fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     // Mock user for demo purposes since the field app APK doesn't send a JWT
-    const user = { deviceId: 'demo-device', role: 'asha', workerId: 'asha_rekha' };
+    const user = { deviceId: 'demo-device', role: 'asha', workerId: 'asha_rekha', facilityId: 'phc-test' } as any;
     const body = request.body as any;
 
     const {
