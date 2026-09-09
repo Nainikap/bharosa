@@ -4,6 +4,34 @@ import { JWT_ACCESS_TTL_SEC, JWT_REFRESH_TTL_SEC } from '@bharosa/shared-contrac
 
 export async function authRoutes(fastify: FastifyInstance) {
 
+  // ─── POST /auth/web/login ─────────────────────────────────────
+  // Web portal login — issues a JWT for dashboard users
+  fastify.post('/web/login', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId, password } = request.body as any;
+
+    if (!userId || !password) {
+      return reply.status(400).send({ error: 'userId and password are required' });
+    }
+
+    // For demo/SIH purposes: accept any non-empty credentials
+    // In production this would check against a web_user table
+    const accessToken = fastify.jwt.sign(
+      {
+        deviceId: `web-${userId}`,
+        role: 'supervisor',
+        workerId: userId,
+        facilityId: 'web-portal',
+      },
+      { expiresIn: JWT_ACCESS_TTL_SEC }
+    );
+
+    return reply.send({
+      accessToken,
+      expiresIn: JWT_ACCESS_TTL_SEC,
+      user: { userId, role: 'supervisor' },
+    });
+  });
+
   // ─── POST /auth/device/register ──────────────────────────────
   // Bind a device PIN → issue refresh token (enrollment)
   fastify.post('/device/register', async (request: FastifyRequest, reply: FastifyReply) => {

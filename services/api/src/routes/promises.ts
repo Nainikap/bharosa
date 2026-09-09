@@ -129,7 +129,7 @@ export async function promiseRoutes(fastify: FastifyInstance) {
       params.push(status);
     }
     if (facility) {
-      query += ` AND p.committed_to->>'facilityId' = $${idx++}`;
+      query += ` AND json_extract(p.committed_to, '$.facilityId') = $${idx++}`;
       params.push(facility);
     }
 

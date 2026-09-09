@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -7,11 +8,35 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaCode] = useState(Math.floor(100000 + Math.random() * 900000).toString());
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Bypass validation for testing
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://bharosa-api.onrender.com/api';
+      const res = await axios.post(`${apiUrl}/auth/web/login`, {
+        userId,
+        password,
+      });
+
+      // Store the token so apiClient interceptor picks it up
+      localStorage.setItem('bharosa_token', res.data.accessToken);
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      // If backend is not running, fall back to demo mode with a note
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
+        setError('Backend server not reachable. Make sure the API is running on port 3000.');
+      } else {
+        setError(err.response?.data?.error || 'Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,6 +65,11 @@ export default function Login() {
           </div>
           
           <div style={{ padding: '24px' }}>
+            {error && (
+              <div style={{ background: '#fff3f3', border: '1px solid #e88', borderRadius: '4px', padding: '10px 14px', marginBottom: '16px', color: '#c33', fontSize: '13px' }}>
+                {error}
+              </div>
+            )}
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: '#333' }}>User ID</label>
@@ -80,8 +110,16 @@ export default function Login() {
                 </div>
               </div>
 
-              <button type="submit" style={{ width: '100%', background: '#003366', color: '#fff', border: 'none', padding: '12px', fontSize: '15px', fontWeight: 600, borderRadius: '2px', cursor: 'pointer' }}>
-                Sign In
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%', background: loading ? '#666' : '#003366', color: '#fff',
+                  border: 'none', padding: '12px', fontSize: '15px', fontWeight: 600,
+                  borderRadius: '2px', cursor: loading ? 'wait' : 'pointer'
+                }}
+              >
+                {loading ? 'Signing In…' : 'Sign In'}
               </button>
               
               <div style={{ marginTop: '16px', textAlign: 'center' }}>
