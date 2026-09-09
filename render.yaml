@@ -1,3 +1,10 @@
+databases:
+  - name: bharosa-db
+    databaseName: bharosa
+    user: bharosa_user
+    plan: free
+    region: oregon
+
 services:
   - type: web
     name: bharosa-api
@@ -17,4 +24,6 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
-        value: ./database.sqlite
+        fromDatabase:
+          name: bharosa-db
+          property: connectionString
