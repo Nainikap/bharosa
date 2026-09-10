@@ -11,13 +11,33 @@ export default function FacilityArrival() {
   }, []);
 
   const fetchArrivals = () => {
-    // Usually we would fetch pending referrals. Mocking a fallback if API fails.
-    apiClient.get('/referrals/pending').then((res) => {
-      setArrivals(res.data);
-    }).catch(() => {
-      setArrivals([
-        { id: 'REF-101', patient: 'Rahul K.', referredBy: 'ASHA-22', reason: 'Fever 5 days', date: '2026-09-02' }
-      ]);
+    apiClient.get('/promises?type=referral&status=open').then((res) => {
+      const rows = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      const mapped = rows.map((p: any) => {
+        let desc = {};
+        try { desc = typeof p.description === 'string' ? JSON.parse(p.description) : (p.description || {}); } catch (e) {}
+        
+        let fromLabel = '—';
+        try {
+          const cb = typeof p.committedBy === 'string' ? JSON.parse(p.committedBy) : (p.committedBy || {});
+          fromLabel = cb.workerId || cb.role || '—';
+        } catch (e) {}
+
+        const patientName = p.patientName || desc.name || desc.patientName || '—';
+        const reason = desc.reason || (desc.symptoms ? (Array.isArray(desc.symptoms) ? desc.symptoms.join(', ') : desc.symptoms) : 'Routine');
+
+        return {
+          id: p.id,
+          patient: patientName,
+          referredBy: fromLabel,
+          reason: reason,
+          date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'
+        };
+      });
+      setArrivals(mapped);
+    }).catch((err) => {
+      console.error(err);
+      setArrivals([]);
     });
   };
 

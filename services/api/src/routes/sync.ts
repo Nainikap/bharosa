@@ -101,14 +101,16 @@ export async function syncRoutes(fastify: FastifyInstance) {
             // Auto-create missing patient/household for demo to prevent FK constraint failures
             const hhId = d.committedBy?.facilityId || 'hh_demo';
             const ptId = d.description?.patientId || 'pt_demo';
+            const ptName = d.description?.patientName || 'Demo Patient';
+            const ptVillage = d.description?.village || 'Demo Village';
             
             await client.query(
               "INSERT INTO household (household_id, catchment_assignment, members) VALUES ($1, 'demo', '[]') ON CONFLICT (household_id) DO NOTHING",
               [hhId]
             );
             await client.query(
-              "INSERT INTO patient (local_id, name, village, household_id) VALUES ($1, 'Demo Patient', 'Demo', $2) ON CONFLICT (local_id) DO NOTHING",
-              [ptId, hhId]
+              "INSERT INTO patient (local_id, name, village, household_id) VALUES ($1, $2, $3, $4) ON CONFLICT (local_id) DO NOTHING",
+              [ptId, ptName, ptVillage, hhId]
             );
 
             await client.query(`
