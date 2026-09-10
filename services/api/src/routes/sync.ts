@@ -91,6 +91,22 @@ export async function syncRoutes(fastify: FastifyInstance) {
             d.independence || null,
           ]);
 
+          if (d.type === 'referral') {
+            await client.query(`
+              INSERT INTO referral_detail (promise_id, patient_id, priority, destination_facility_id, human_code, referral_reason, triage_route)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+              ON CONFLICT (promise_id) DO NOTHING
+            `, [
+              op.rowId,
+              d.description?.patientId || null,
+              d.priority || d.description?.priority || 'normal',
+              d.committedTo?.facilityId || d.description?.facility || null,
+              d.code || d.description?.code || null,
+              d.description?.symptoms || 'None',
+              d.description?.route || null
+            ]);
+          }
+
           await client.query(`
             UPDATE promise SET sla_start = datetime('now') WHERE id = $1 AND sla_start IS NULL
           `, [op.rowId]);
