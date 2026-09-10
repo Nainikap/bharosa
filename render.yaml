@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     rootDir: .
-    buildCommand: npm install && npm run build -w packages/shared-contracts && npm run build -w services/api
+    buildCommand: npm install --include=dev && npm run build -w packages/shared-contracts && npm run build -w services/api
     startCommand: node services/api/dist/server.js
     envVars:
       - key: NODE_ENV
@@ -18,3 +18,5 @@ services:
         generateValue: true
       - key: DATABASE_URL
         value: ./database.sqlite
+      - key: NODE_VERSION
+        value: 20.10.0
