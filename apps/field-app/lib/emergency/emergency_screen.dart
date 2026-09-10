@@ -228,7 +228,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             ),
           ],
           const SizedBox(height: 14),
-          const Text('If data is unavailable, SMS is sent to +91 9755760921.',
+          const Text('If data is unavailable, SMS is sent to +91 7090562108.',
               style: TextStyle(color: AppColors.muted, fontSize: 10), textAlign: TextAlign.center),
         ],
       ),

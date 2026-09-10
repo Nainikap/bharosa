@@ -20,10 +20,14 @@ class AppConfig {
     defaultValue: 'https://bharosa-api.onrender.com/api',
   );
   // Block-office SMS gateway number for emergency bypass (plain GSM, no data needed)
+  // Overridable via --dart-define=GATEWAY_SMS_NUMBER=...
   static const gatewaySmsNumber = String.fromEnvironment(
     'GATEWAY_SMS_NUMBER',
-    defaultValue: '+919755760921',
+    defaultValue: '+917090562108',
   );
+  // How long to wait for internet after referral creation before
+  // falling back to GSM SMS when offline.
+  static const offlineSmsDelay = Duration(minutes: 1);
   // Local storage keys
   static const pinKey = 'bharosa_pin';
   static const pinSetKey = 'bharosa_pin_set';
@@ -58,11 +62,12 @@ class Priority {
   static const redFlag = 'red_flag';
 }
 
-// Demo SLA clocks — production durations are 7d/48h/24h, compressed to minutes
-// so the offline prototype demonstrates the miss → escalate → handle loop live.
+// SLA clocks — every referral gets a 1-minute timelimit so the
+// miss → escalate → SMS fallback loop demonstrates live.
+// (Production durations would be 7d/48h/24h.)
 class SlaDemo {
-  static const normal = Duration(minutes: 3);
-  static const urgent = Duration(minutes: 2);
+  static const normal = Duration(minutes: 1);
+  static const urgent = Duration(minutes: 1);
   static const redFlag = Duration(minutes: 1);
 
   static Duration forPriority(String p) {

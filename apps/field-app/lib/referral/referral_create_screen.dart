@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,11 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
   String priority = Priority.urgent;
   bool saving = false;
   bool saved = false;
+  // 1-minute offline wait state — counts down while we hold the
+  // referral for internet before falling back to GSM SMS.
+  bool waitingForNetwork = false;
+  int waitSecondsLeft = 0;
+  Timer? _waitTimer;
 
   final facilities = [
     'CHC Shivapur (14 km)',
@@ -36,6 +42,12 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
   void initState() {
     super.initState();
     code = generateReferralCode();
+  }
+
+  @override
+  void dispose() {
+    _waitTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -105,18 +117,34 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
           const Text('Priority', style: TextStyle(color: AppColors.head, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Wrap(spacing: 8, children: [
-            ChoiceChip(label: const Text('Routine (3 min)'), selected: priority == Priority.normal, onSelected: (_) => setState(() => priority = Priority.normal)),
-            ChoiceChip(label: const Text('Urgent (2 min)'), selected: priority == Priority.urgent, onSelected: (_) => setState(() => priority = Priority.urgent)),
+            ChoiceChip(label: const Text('Routine (1 min)'), selected: priority == Priority.normal, onSelected: (_) => setState(() => priority = Priority.normal)),
+            ChoiceChip(label: const Text('Urgent (1 min)'), selected: priority == Priority.urgent, onSelected: (_) => setState(() => priority = Priority.urgent)),
             ChoiceChip(label: const Text('Red-flag (1 min)'), selected: priority == Priority.redFlag, onSelected: (_) => setState(() => priority = Priority.redFlag)),
           ]),
           const SizedBox(height: 18),
           PrimaryButton(
-            label: saving ? 'Sending...' : (saved ? 'Referral Sent' : 'Send referral message'),
+            label: waitingForNetwork
+                ? 'Waiting for internet... ${waitSecondsLeft}s'
+                : (saving ? 'Sending...' : (saved ? 'Referral Sent' : 'Send referral message')),
             icon: Icons.send,
-            onPressed: (saving || saved) ? null : () => _save(patient, result),
+            onPressed: (saving || saved || waitingForNetwork) ? null : () => _save(patient, result),
           ),
           const SizedBox(height: 8),
-          const Text('Sends through the data network first. If it is unavailable, sends an SMS to +91 9755760921.',
+          if (waitingForNetwork)
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.orange.shade300),
+              ),
+              child: Text(
+                'No internet — holding referral for 1 min. If still offline, an SMS will be sent to +91 7090562108.\n$waitSecondsLeft seconds left...',
+                style: const TextStyle(color: AppColors.head, fontSize: 11, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          const Text('Sends through the data network first. If no internet for 1 min, sends an SMS to +91 7090562108.',
               style: TextStyle(color: AppColors.muted, fontSize: 11), textAlign: TextAlign.center),
         ],
       ),
@@ -198,7 +226,10 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       priority: priority == Priority.redFlag ? 'emergency' : 'referral',
     );
 
-    // Send through the data network first. SMS is used only when it is unavailable.
+    // Send through the data network first.
+    // If there is no internet, hold for 1 min (AppConfig.offlineSmsDelay);
+    // if still offline after the timelimit, fall back to GSM SMS to
+    // AppConfig.gatewaySmsNumber (+91 7090562108 by default).
     String messageStatus;
     final online = await sync.hasConnectivity();
     if (online) {
@@ -206,10 +237,10 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       if (r.synced > 0) {
         messageStatus = 'Sent through data network';
       } else {
-        messageStatus = await _sendSmsFallback(patient, result);
+        messageStatus = await _waitOneMinuteThenSmsIfStillOffline(patient, result, sync);
       }
     } else {
-      messageStatus = await _sendSmsFallback(patient, result);
+      messageStatus = await _waitOneMinuteThenSmsIfStillOffline(patient, result, sync);
     }
 
     description['messageChannel'] = messageStatus;
@@ -217,16 +248,22 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       PromisesCompanion(descriptionJson: drift.Value(jsonEncode(description))),
     );
 
-    // Surface the SLA deadline right after creation so the ASHA can see it
-    final deadlineAt = DateTime.now().add(SlaDemo.forPriority(priority));
+    // Surface the SLA deadline (1 min from creation) so the ASHA can see it.
+    // Use creation time `now`, not DateTime.now(), since we may have
+    // waited 1 min for internet before reaching here.
+    final deadlineAt =
+        (DateTime.tryParse(now) ?? DateTime.now()).add(SlaDemo.forPriority(priority));
     String two(int n) => n.toString().padLeft(2, '0');
     final deadlineLabel =
         '${two(deadlineAt.hour)}:${two(deadlineAt.minute)} (SLA ${SlaDemo.forPriority(priority).inMinutes} min)';
 
+    _waitTimer?.cancel();
     if (mounted) {
       setState(() {
         saving = false;
         saved = true;
+        waitingForNetwork = false;
+        waitSecondsLeft = 0;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -236,6 +273,80 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     }
+  }
+
+  /// Holds the referral for [AppConfig.offlineSmsDelay] (1 min) when there
+  /// is no internet. Polls every 5s — if internet returns, syncs immediately.
+  /// If still offline after the timelimit, sends GSM SMS to 7090562108.
+  Future<String> _waitOneMinuteThenSmsIfStillOffline(
+    Patient patient,
+    TriageResult result,
+    SyncService sync,
+  ) async {
+    final totalSeconds = AppConfig.offlineSmsDelay.inSeconds;
+    if (mounted) {
+      setState(() {
+        waitingForNetwork = true;
+        waitSecondsLeft = totalSeconds;
+      });
+    }
+
+    final completer = Completer<String>();
+    int elapsed = 0;
+    _waitTimer?.cancel();
+    _waitTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      elapsed++;
+      final left = totalSeconds - elapsed;
+      if (mounted) {
+        setState(() => waitSecondsLeft = left < 0 ? 0 : left);
+      }
+
+      // Opportunistic early-exit: every 5s retry data sync.
+      if (elapsed % 5 == 0) {
+        try {
+          final onlineNow = await sync.hasConnectivity();
+          if (onlineNow) {
+            final r = await sync.drain();
+            if (r.synced > 0) {
+              timer.cancel();
+              if (!completer.isCompleted) {
+                completer.complete('Sent through data network');
+              }
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (elapsed >= totalSeconds) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          try {
+            final onlineNow = await sync.hasConnectivity();
+            if (onlineNow) {
+              final r = await sync.drain();
+              if (r.synced > 0) {
+                completer.complete('Sent through data network');
+                return;
+              }
+            }
+          } catch (_) {}
+          // Still no internet after 1 min → GSM SMS to 7090562108.
+          final smsStatus = await _sendSmsFallback(patient, result);
+          if (!completer.isCompleted) completer.complete(smsStatus);
+        }
+      }
+    });
+
+    final status = await completer.future;
+    _waitTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        waitingForNetwork = false;
+        waitSecondsLeft = 0;
+      });
+    }
+    return status;
   }
 
   Future<String> _sendSmsFallback(Patient patient, TriageResult result) async {
