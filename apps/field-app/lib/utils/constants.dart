@@ -23,7 +23,7 @@ class AppConfig {
   // Overridable via --dart-define=GATEWAY_SMS_NUMBER=...
   static const gatewaySmsNumber = String.fromEnvironment(
     'GATEWAY_SMS_NUMBER',
-    defaultValue: '+917090562108',
+    defaultValue: '+919755760921',
   );
   // How long to wait for internet after referral creation before
   // falling back to GSM SMS when offline.

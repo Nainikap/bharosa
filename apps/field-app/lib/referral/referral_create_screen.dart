@@ -139,12 +139,12 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
                 border: Border.all(color: Colors.orange.shade300),
               ),
               child: Text(
-                'No internet — holding referral for 1 min. If still offline, an SMS will be sent to +91 7090562108.\n$waitSecondsLeft seconds left...',
+                'No internet — holding referral for 1 min. If still offline, an SMS will be sent to +91 9755760921.\n$waitSecondsLeft seconds left...',
                 style: const TextStyle(color: AppColors.head, fontSize: 11, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
             ),
-          const Text('Sends through the data network first. If no internet for 1 min, sends an SMS to +91 7090562108.',
+          const Text('Sends through the data network first. If no internet for 1 min, sends an SMS to +91 9755760921.',
               style: TextStyle(color: AppColors.muted, fontSize: 11), textAlign: TextAlign.center),
         ],
       ),
@@ -229,7 +229,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
     // Send through the data network first.
     // If there is no internet, hold for 1 min (AppConfig.offlineSmsDelay);
     // if still offline after the timelimit, fall back to GSM SMS to
-    // AppConfig.gatewaySmsNumber (+91 7090562108 by default).
+    // AppConfig.gatewaySmsNumber (+91 9755760921 by default).
     String messageStatus;
     final online = await sync.hasConnectivity();
     if (online) {
@@ -277,7 +277,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
 
   /// Holds the referral for [AppConfig.offlineSmsDelay] (1 min) when there
   /// is no internet. Polls every 5s — if internet returns, syncs immediately.
-  /// If still offline after the timelimit, sends GSM SMS to 7090562108.
+  /// If still offline after the timelimit, sends GSM SMS to 9755760921.
   Future<String> _waitOneMinuteThenSmsIfStillOffline(
     Patient patient,
     TriageResult result,
@@ -331,7 +331,7 @@ class _ReferralCreateScreenState extends State<ReferralCreateScreen> {
               }
             }
           } catch (_) {}
-          // Still no internet after 1 min → GSM SMS to 7090562108.
+          // Still no internet after 1 min → GSM SMS to 9755760921.
           final smsStatus = await _sendSmsFallback(patient, result);
           if (!completer.isCompleted) completer.complete(smsStatus);
         }
