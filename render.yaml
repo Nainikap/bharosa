@@ -1,13 +1,13 @@
 databases:
-  - name: bharosa-db
-    databaseName: bharosa
-    user: bharosa_user
+  - name: bharosa-db-new
+    databaseName: bharosa_new
+    user: bharosa_user_new
     plan: free
     region: oregon
 
 services:
   - type: web
-    name: bharosa-api
+    name: bharosa-api-new
     runtime: node
     region: oregon
     plan: free
@@ -25,5 +25,5 @@ services:
         generateValue: true
       - key: DATABASE_URL
         fromDatabase:
-          name: bharosa-db
+          name: bharosa-db-new
           property: connectionString
