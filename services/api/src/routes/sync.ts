@@ -13,6 +13,12 @@ export async function syncRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'ops must be an array' });
     }
 
+    // Ensure mock device exists to satisfy foreign key constraints
+    await fastify.db.query(
+      "INSERT INTO device (device_id, pin_hash, role, worker_id) VALUES ($1, 'demo', 'asha', 'asha_rekha') ON CONFLICT (device_id) DO NOTHING",
+      [user.deviceId]
+    );
+
     // Check seq conflict (lenient: skip if lastSeq not provided)
     const { rows: cursorRows } = await fastify.db.query(
       'SELECT last_seq FROM sync_cursor WHERE device_id = $1',

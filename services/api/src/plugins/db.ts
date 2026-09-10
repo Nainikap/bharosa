@@ -52,6 +52,21 @@ async function dbPluginFn(fastify: FastifyInstance) {
 
   fastify.log.info('SQLite connected and schema initialized');
 
+  // Ensure demo data exists for the field app demo
+  sqliteDb.exec(`
+    INSERT INTO household (household_id, catchment_assignment, landmark_descriptor, members)
+    VALUES ('hh-001', 'phc-alpha', 'Near big banyan tree', '[]')
+    ON CONFLICT(household_id) DO NOTHING;
+
+    INSERT INTO patient (local_id, name, village, household_id, gender)
+    VALUES ('pt-001', 'Aarav Kumar', 'Rampur', 'hh-001', 'male')
+    ON CONFLICT(local_id) DO NOTHING;
+
+    INSERT INTO patient (local_id, name, village, household_id, gender)
+    VALUES ('pt-002', 'Sunita Devi', 'Sitapur', 'hh-001', 'female')
+    ON CONFLICT(local_id) DO NOTHING;
+  `);
+
   const queryPolyfill = async (sql: string, params: any[] = []): Promise<{ rows: any[] }> => {
     const { sqliteSql } = translateSql(sql);
 
