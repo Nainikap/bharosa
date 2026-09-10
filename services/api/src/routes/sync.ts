@@ -98,18 +98,31 @@ export async function syncRoutes(fastify: FastifyInstance) {
           ]);
 
           if (d.type === 'referral') {
+            // Auto-create missing patient/household for demo to prevent FK constraint failures
+            const hhId = d.committedBy?.facilityId || 'hh_demo';
+            const ptId = d.description?.patientId || 'pt_demo';
+            
+            await client.query(
+              "INSERT INTO household (household_id, catchment_assignment, members) VALUES ($1, 'demo', '[]') ON CONFLICT (household_id) DO NOTHING",
+              [hhId]
+            );
+            await client.query(
+              "INSERT INTO patient (local_id, name, village, household_id) VALUES ($1, 'Demo Patient', 'Demo', $2) ON CONFLICT (local_id) DO NOTHING",
+              [ptId, hhId]
+            );
+
             await client.query(`
               INSERT INTO referral_detail (promise_id, patient_id, priority, destination_facility_id, human_code, referral_reason, triage_route)
               VALUES ($1, $2, $3, $4, $5, $6, $7)
               ON CONFLICT (promise_id) DO NOTHING
             `, [
               op.rowId,
-              d.description?.patientId || null,
-              d.priority || d.description?.priority || 'normal',
-              d.committedTo?.facilityId || d.description?.facility || null,
-              d.code || d.description?.code || null,
-              d.description?.symptoms || 'None',
-              d.description?.route || null
+              ptId,
+              d.priority || 'routine',
+              d.committedTo?.facilityId || 'facility-unknown',
+              d.description?.humanCode || null,
+              d.description?.reason || 'Demo Referral',
+              d.independence || null,
             ]);
           }
 
